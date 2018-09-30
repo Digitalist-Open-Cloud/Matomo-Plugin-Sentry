@@ -23,15 +23,26 @@ use Piwik\Validators\NotEmpty;
 class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 {
     /** @var Setting */
-    public $dsn;
+    public $DSN;
+    
+    /** @var Setting */
+    public $browserDSN;
     
     protected function init() {
-        $this->dsn = $this->createDSNSetting();
+        $this->DSN = $this->createDSNSetting();
+        $this->browserDSN = $this->createBrowserDSNSetting();
     }
-    
+
     private function createDSNSetting() {
-        return $this->makeSetting('dsn', "", FieldConfig::TYPE_STRING, function (FieldConfig $field) {
+        return $this->makeSetting('DSN', "", FieldConfig::TYPE_STRING, function (FieldConfig $field) {
             $field->title = 'Sentry DSN';
+            $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
+            $field->description = '';
+        });
+    }
+    private function createBrowserDSNSetting() {
+        return $this->makeSetting('BrowserDSN', "", FieldConfig::TYPE_STRING, function (FieldConfig $field) {
+            $field->title = 'Sentry DSN (JS)';
             $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
             $field->description = '';
         });

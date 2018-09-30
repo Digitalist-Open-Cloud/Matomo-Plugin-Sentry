@@ -19,7 +19,7 @@ class SentryLogger extends \Piwik\Plugin
     public function __construct($pluginName = false) {
 
         $settings = new SystemSettings();
-        $dsn = $settings->dsn->getValue();
+        $dsn = $settings->DSN->getValue();
 
 
         if ($dsn) {
@@ -35,5 +35,28 @@ class SentryLogger extends \Piwik\Plugin
         }
         parent::__construct($pluginName);
     }
+
+    /**
+     * @see \Piwik\Plugin::registerEvents
+     */
+    public function registerEvents() {
+        return array(
+            'AssetManager.getJavaScriptFiles' => 'getJavaScriptFiles',
+            'Template.jsGlobalVariables' => 'addJsGlobalVariables',
+        );
+    }
+
+    public function getJavaScriptFiles(&$jsFiles) {
+        $jsFiles[] = 'plugins/SentryLogger/node_modules/@sentry/browser/build/bundle.min.js';
+        $jsFiles[] = 'plugins/SentryLogger/javascripts/init.js';
+    }
+
+    public function addJsGlobalVariables(&$out) {
+
+        $settings = new SystemSettings();
+        $dsn = $settings->browserDSN->getValue();
+        $out .= "piwik.sentryDSN = '$dsn';\n";
+    }
+
 
 }
