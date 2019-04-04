@@ -1,7 +1,7 @@
 {
   "name": "SentryLogger",
   "description": "Log all Matomo errors to a Sentry server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "theme": false,
   "require": {
     "piwik": ">=3.6.0,<4.0.0-b1",
