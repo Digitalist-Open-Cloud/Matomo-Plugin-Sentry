@@ -2,13 +2,53 @@
 
 ## Unreleased
 
-- ...
+## 2.0.1 (2019-03-01)
 
-## 1.9.2 (2018-08-17)
+- Do no longer report silenced errors by default (#785)
+- New option `capture_silenced_error` to enable reporting of silenced errors, disabled by default (#785)
+
+## 2.0.0 (2019-02-25)
+
+**Version 2.0.0 is a complete rewrite of the existing SDK. Code Changes are needed. Please see [UPGRADE 2.0](https://github.com/getsentry/sentry-php/blob/master/UPGRADE-2.0.md) for more details.** 
+
+- Updated .gitattributes to reduce package footprint (#770)
+- Use multibyte functions to handle unicode paths (#774)
+- Remove `Hub::getScope()` to deny direct access to `Scope` instances (#776)
+- Reintroduce `http_proxy` option (#775)
+- Added support for HTTPlug 2 / PSR-18 (#777)
+
+## 2.0.0-beta2 (2019-02-11)
+- Rename `SentryAuth` class to `SentryAuthentication` (#742)
+- `Client` class is now final
+- Fix issue with `ClientBuilder`: factories are not instantiated if transport is set manually (#747)
+- Rename `excluded_paths` to `in_app_exclude` option to follow Unified API spec (#755)
+- Add `max_value_length` option to trim long values during serialization (#754)
+- Lower the default `send_attempts` to 3 (#760)
+- Fix method argument name handling when Xdebug is enabled (#763)
+- Add CI build under Windows with AppVeyor (#758) and fix some bugs
+- Change the `ErrorHandler` and default integrations behavior: the handler is now a singleton, 
+  and it's possible to attach a number of callables as listeners for errors and exceptions (#762)
+- The `context_lines` options changed the default to `5` and is properly applied (#743)
+- Add support for "formatted messages" in `captureEvent` as payload (#752)
+- Fix issue when capturing exceptions to remove warning when converting array args (#761)
+
+## 2.0.0-beta1 (2018-12-19)
+
+- Require PHP >= 7.1
+- Refactor the whole codebase to support the Unified API SDK specs
+- See the UPGRADE.md document for more information.
+
+## 1.10.0 (2018-11-09)
+
+- Added passing data from context in monolog breadcrumb handler (#683)
+- Do not return error id if we know we did not send the error (#667)
+- Do not force IPv4 protocol by default (#654)
+
+## 1.9.2 (2018-08-18)
 
 - Remove secret_key from required keys for CLI test command. (#645)
 - Proper case in Raven_Util class name usage. (#642)
-- Support longer creditcard numbers. (#635)
+- Support longer credit card numbers. (#635)
 - Use configured message limit when creating serializers. (#634)
 - Do not truncate strings if message limit is set to zero. (#630)
 - Add option to ignore SERVER_PORT getting added to url. (#629)

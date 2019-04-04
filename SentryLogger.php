@@ -9,6 +9,9 @@
 namespace Piwik\Plugins\SentryLogger;
 
 use Monolog\Logger;
+use Piwik\Config;
+use Piwik\Piwik;
+use Piwik\Plugins\LanguagesManager\LanguagesManager;
 use Piwik\Version;
 
 class SentryLogger extends \Piwik\Plugin
@@ -17,7 +20,7 @@ class SentryLogger extends \Piwik\Plugin
      * @param bool|string $pluginName
      */
     public function __construct($pluginName = false) {
-
+        parent::__construct($pluginName);
         $settings = new SystemSettings();
         $dsn = $settings->DSN->getValue();
 
@@ -26,14 +29,27 @@ class SentryLogger extends \Piwik\Plugin
             // Add composer dependencies
             require_once PIWIK_INCLUDE_PATH . '/plugins/SentryLogger/vendor/autoload.php';
 
-            $client = new \Raven_Client($dsn);
-            $client->setRelease(Version::VERSION);
-            $error_handler = new \Raven_ErrorHandler($client);
-            $error_handler->registerExceptionHandler();
-            $error_handler->registerErrorHandler();
-            $error_handler->registerShutdownFunction();
+            \Sentry\init([
+                'dsn' => $dsn,
+                'release' => Version::VERSION,
+            ]);
+            $username = Piwik::getCurrentUserLogin();
+            $metadata = [
+                "module" => Piwik::getModule(),
+                "action" => Piwik::getAction(),
+                "currentPlugin" => Piwik::getCurrentPlugin()->pluginName,
+                "language" => LanguagesManager::getLanguageCodeForCurrentUser(),
+                "hostname" => Config::getHostname()
+            ];
+            \Sentry\configureScope(function (\Sentry\State\Scope $scope) use ($metadata, $username): void {
+                $scope->setUser([
+                    'email' => $username
+                ]);
+                foreach ($metadata as $key => $value) {
+                    $scope->setTag($key, $value);
+                }
+            });
         }
-        parent::__construct($pluginName);
     }
 
     /**
