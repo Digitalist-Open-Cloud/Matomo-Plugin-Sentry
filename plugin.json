@@ -1,10 +1,11 @@
 {
   "name": "SentryLogger",
   "description": "Log all Matomo errors to a Sentry server",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "theme": false,
   "require": {
-    "piwik": ">=3.6.0,<4.0.0-b1"
+    "piwik": ">=3.6.0,<4.0.0-b1",
+    "php": ">=7.1.0"
   },
   "authors": [
     {
