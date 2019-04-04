@@ -1,5 +1,9 @@
 ## Changelog
 
+#### 0.2.3
+
+don't load current plugin
+
 #### 0.2.2
 
 fix typo in saving username
