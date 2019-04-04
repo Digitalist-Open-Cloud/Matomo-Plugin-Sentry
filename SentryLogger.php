@@ -37,7 +37,7 @@ class SentryLogger extends \Piwik\Plugin
             $metadata = [
                 "module" => Piwik::getModule(),
                 "action" => Piwik::getAction(),
-                "currentPlugin" => Piwik::getCurrentPlugin()->pluginName,
+//                "currentPlugin" => Piwik::getCurrentPlugin()->pluginName,
                 "language" => LanguagesManager::getLanguageCodeForCurrentUser(),
                 "hostname" => Config::getHostname()
             ];
