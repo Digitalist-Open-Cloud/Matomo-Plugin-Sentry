@@ -43,7 +43,7 @@ class SentryLogger extends \Piwik\Plugin
             ];
             \Sentry\configureScope(function (\Sentry\State\Scope $scope) use ($metadata, $username): void {
                 $scope->setUser([
-                    'email' => $username
+                    'username' => $username
                 ]);
                 foreach ($metadata as $key => $value) {
                     $scope->setTag($key, $value);
