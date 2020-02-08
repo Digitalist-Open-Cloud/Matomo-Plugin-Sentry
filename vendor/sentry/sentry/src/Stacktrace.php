@@ -11,9 +11,13 @@ use Sentry\Serializer\SerializerInterface;
  * This class contains all the information about an error stacktrace.
  *
  * @author Stefano Arlandini <sarlandini@alice.it>
+ *
+ * @final since version 2.3
  */
 class Stacktrace implements \JsonSerializable
 {
+    private const INTERNAL_FRAME_FILENAME = '[internal]';
+
     /**
      * @var Options The client options
      */
@@ -77,7 +81,7 @@ class Stacktrace implements \JsonSerializable
         foreach ($backtrace as $frame) {
             $stacktrace->addFrame($file, $line, $frame);
 
-            $file = $frame['file'] ?? '[internal]';
+            $file = $frame['file'] ?? self::INTERNAL_FRAME_FILENAME;
             $line = $frame['line'] ?? 0;
         }
 
@@ -95,6 +99,15 @@ class Stacktrace implements \JsonSerializable
     public function getFrames(): array
     {
         return $this->frames;
+    }
+
+    public function getFrame(int $index): Frame
+    {
+        if ($index < 0 || $index >= \count($this->frames)) {
+            throw new \OutOfBoundsException();
+        }
+
+        return $this->frames[$index];
     }
 
     /**
@@ -115,8 +128,12 @@ class Stacktrace implements \JsonSerializable
             $line = (int) $matches[2];
         }
 
-        if (isset($backtraceFrame['class'])) {
-            $functionName = sprintf('%s::%s', $backtraceFrame['class'], $backtraceFrame['function']);
+        if (isset($backtraceFrame['class']) && isset($backtraceFrame['function'])) {
+            $functionName = sprintf(
+                '%s::%s',
+                preg_replace('/0x[a-fA-F0-9]+$/', '', $backtraceFrame['class']),
+                $backtraceFrame['function']
+            );
         } elseif (isset($backtraceFrame['function'])) {
             $functionName = $backtraceFrame['function'];
         } else {
@@ -138,21 +155,7 @@ class Stacktrace implements \JsonSerializable
             $frame->setPostContext($sourceCodeExcerpt['post_context']);
         }
 
-        if (null !== $this->options->getProjectRoot()) {
-            $excludedAppPaths = $this->options->getInAppExcludedPaths();
-            $absoluteFilePath = @realpath($file) ?: $file;
-            $isApplicationFile = 0 === strpos($absoluteFilePath, $this->options->getProjectRoot());
-
-            if ($isApplicationFile && !empty($excludedAppPaths)) {
-                foreach ($excludedAppPaths as $path) {
-                    if (0 === mb_strpos($absoluteFilePath, $path)) {
-                        $frame->setIsInApp(false);
-
-                        break;
-                    }
-                }
-            }
-        }
+        $frame->setIsInApp($this->isFrameInApp($file, $functionName));
 
         $frameArguments = $this->getFrameArguments($backtraceFrame);
 
@@ -160,8 +163,8 @@ class Stacktrace implements \JsonSerializable
             foreach ($frameArguments as $argumentName => $argumentValue) {
                 $argumentValue = $this->representationSerializer->representationSerialize($argumentValue);
 
-                if (\is_string($argumentValue) || is_numeric($argumentValue)) {
-                    $frameArguments[(string) $argumentName] = mb_substr($argumentValue, 0, $this->options->getMaxValueLength());
+                if (is_numeric($argumentValue) || \is_string($argumentValue)) {
+                    $frameArguments[(string) $argumentName] = mb_substr((string) $argumentValue, 0, $this->options->getMaxValueLength());
                 } else {
                     $frameArguments[(string) $argumentName] = $argumentValue;
                 }
@@ -214,12 +217,10 @@ class Stacktrace implements \JsonSerializable
      * @param string $path            The file path
      * @param int    $lineNumber      The line to centre about
      * @param int    $maxLinesToFetch The maximum number of lines to fetch
-     *
-     * @return array
      */
     protected function getSourceCodeExcerpt(string $path, int $lineNumber, int $maxLinesToFetch): array
     {
-        if (!is_file($path) || !is_readable($path)) {
+        if (@!is_readable($path) || !is_file($path)) {
             return [];
         }
 
@@ -273,8 +274,6 @@ class Stacktrace implements \JsonSerializable
      * Removes from the given file path the specified prefixes.
      *
      * @param string $filePath The path to the file
-     *
-     * @return string
      */
     protected function stripPrefixFromFilePath(string $filePath): string
     {
@@ -291,8 +290,6 @@ class Stacktrace implements \JsonSerializable
      * Gets the values of the arguments of the given stackframe.
      *
      * @param array $frame The frame from where arguments are retrieved
-     *
-     * @return array
      */
     protected function getFrameArgumentsValues(array $frame): array
     {
@@ -305,8 +302,9 @@ class Stacktrace implements \JsonSerializable
         if (\is_string(array_keys($frame['args'])[0])) {
             $result = array_map([$this, 'serializeArgument'], $frame['args']);
         } else {
-            foreach (array_values($frame['args']) as $index => $argument) {
-                $result['param' . ($index + 1)] = $this->serializeArgument($argument);
+            $index = 0;
+            foreach (array_values($frame['args']) as $argument) {
+                $result['param' . (++$index)] = $this->serializeArgument($argument);
             }
         }
 
@@ -317,8 +315,6 @@ class Stacktrace implements \JsonSerializable
      * Gets the arguments of the given stackframe.
      *
      * @param array $frame The frame from where arguments are retrieved
-     *
-     * @return array
      */
     public function getFrameArguments(array $frame): array
     {
@@ -389,6 +385,13 @@ class Stacktrace implements \JsonSerializable
         return $args;
     }
 
+    /**
+     * Serializes the given argument.
+     *
+     * @param mixed $arg The argument to serialize
+     *
+     * @return mixed
+     */
     protected function serializeArgument($arg)
     {
         $maxValueLength = $this->options->getMaxValueLength();
@@ -410,5 +413,50 @@ class Stacktrace implements \JsonSerializable
         } else {
             return $arg;
         }
+    }
+
+    /**
+     * Checks whether a certain frame should be marked as "in app" or not.
+     *
+     * @param string      $file         The file to check
+     * @param string|null $functionName The name of the function
+     */
+    private function isFrameInApp(string $file, ?string $functionName): bool
+    {
+        if (self::INTERNAL_FRAME_FILENAME === $file) {
+            return false;
+        }
+
+        if (null !== $functionName && 0 === strpos($functionName, 'Sentry\\')) {
+            return false;
+        }
+
+        $projectRoot = $this->options->getProjectRoot();
+        $excludedAppPaths = $this->options->getInAppExcludedPaths();
+        $includedAppPaths = $this->options->getInAppIncludedPaths();
+        $absoluteFilePath = @realpath($file) ?: $file;
+        $isInApp = true;
+
+        if (null !== $projectRoot) {
+            $isInApp = 0 === mb_strpos($absoluteFilePath, $projectRoot);
+        }
+
+        foreach ($excludedAppPaths as $excludedAppPath) {
+            if (0 === mb_strpos($absoluteFilePath, $excludedAppPath)) {
+                $isInApp = false;
+
+                break;
+            }
+        }
+
+        foreach ($includedAppPaths as $includedAppPath) {
+            if (0 === mb_strpos($absoluteFilePath, $includedAppPath)) {
+                $isInApp = true;
+
+                break;
+            }
+        }
+
+        return $isInApp;
     }
 }

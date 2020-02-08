@@ -7,7 +7,7 @@ namespace Sentry\Integration;
 use Jean85\PrettyVersions;
 use PackageVersions\Versions;
 use Sentry\Event;
-use Sentry\State\Hub;
+use Sentry\SentrySdk;
 use Sentry\State\Scope;
 
 /**
@@ -27,10 +27,12 @@ final class ModulesIntegration implements IntegrationInterface
     public function setupOnce(): void
     {
         Scope::addGlobalEventProcessor(function (Event $event) {
-            $self = Hub::getCurrent()->getIntegration(self::class);
+            $integration = SentrySdk::getCurrentHub()->getIntegration(self::class);
 
-            if ($self instanceof self) {
-                self::applyToEvent($self, $event);
+            // The integration could be bound to a client that is not the one
+            // attached to the current hub. If this is the case, bail out
+            if ($integration instanceof self) {
+                self::applyToEvent($integration, $event);
             }
 
             return $event;

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Sentry;
 
+use GuzzleHttp\Promise\FulfilledPromise;
+use GuzzleHttp\Promise\PromiseInterface;
 use Sentry\Integration\Handler;
+use Sentry\Integration\IgnoreErrorsIntegration;
 use Sentry\Integration\IntegrationInterface;
 use Sentry\State\Scope;
+use Sentry\Transport\ClosableTransportInterface;
 use Sentry\Transport\TransportInterface;
 
 /**
@@ -14,7 +18,7 @@ use Sentry\Transport\TransportInterface;
  *
  * @author Stefano Arlandini <sarlandini@alice.it>
  */
-final class Client implements ClientInterface
+final class Client implements FlushableClientInterface
 {
     /**
      * The version of the protocol to communicate with the Sentry server.
@@ -42,7 +46,9 @@ final class Client implements ClientInterface
     private $eventFactory;
 
     /**
-     * @var IntegrationInterface[] The stack of integrations
+     * @var array<string, IntegrationInterface> The stack of integrations
+     *
+     * @psalm-var array<class-string<IntegrationInterface>, IntegrationInterface>
      */
     private $integrations;
 
@@ -79,11 +85,7 @@ final class Client implements ClientInterface
             'level' => $level,
         ];
 
-        if ($event = $this->prepareEvent($payload, $scope, $this->options->shouldAttachStacktrace())) {
-            return $this->transport->send($event);
-        }
-
-        return null;
+        return $this->captureEvent($payload, $scope);
     }
 
     /**
@@ -91,9 +93,11 @@ final class Client implements ClientInterface
      */
     public function captureException(\Throwable $exception, ?Scope $scope = null): ?string
     {
-        $payload['exception'] = $exception;
+        if (!isset($this->integrations[IgnoreErrorsIntegration::class]) && $this->options->isExcludedException($exception, false)) {
+            return null;
+        }
 
-        return $this->captureEvent($payload, $scope);
+        return $this->captureEvent(['exception' => $exception], $scope);
     }
 
     /**
@@ -101,11 +105,13 @@ final class Client implements ClientInterface
      */
     public function captureEvent(array $payload, ?Scope $scope = null): ?string
     {
-        if ($event = $this->prepareEvent($payload, $scope)) {
-            return $this->transport->send($event);
+        $event = $this->prepareEvent($payload, $scope);
+
+        if (null === $event) {
+            return null;
         }
 
-        return null;
+        return $this->transport->send($event);
     }
 
     /**
@@ -126,22 +132,36 @@ final class Client implements ClientInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @psalm-template T of IntegrationInterface
      */
     public function getIntegration(string $className): ?IntegrationInterface
     {
+        /** @psalm-var T|null */
         return $this->integrations[$className] ?? null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function flush(?int $timeout = null): PromiseInterface
+    {
+        if (!$this->transport instanceof ClosableTransportInterface) {
+            return new FulfilledPromise(true);
+        }
+
+        return $this->transport->close($timeout);
     }
 
     /**
      * Assembles an event and prepares it to be sent of to Sentry.
      *
-     * @param array      $payload        the payload that will be converted to an Event
-     * @param Scope|null $scope          optional scope which enriches the Event
-     * @param bool       $withStacktrace True if the event should have and attached stacktrace
+     * @param array      $payload the payload that will be converted to an Event
+     * @param Scope|null $scope   optional scope which enriches the Event
      *
      * @return Event|null returns ready to send Event, however depending on options it can be discarded
      */
-    private function prepareEvent(array $payload, ?Scope $scope = null, bool $withStacktrace = false): ?Event
+    private function prepareEvent(array $payload, ?Scope $scope = null): ?Event
     {
         $sampleRate = $this->getOptions()->getSampleRate();
 
@@ -149,7 +169,7 @@ final class Client implements ClientInterface
             return null;
         }
 
-        if ($withStacktrace) {
+        if ($this->getOptions()->shouldAttachStacktrace() && !isset($payload['exception']) && !isset($payload['stacktrace'])) {
             $event = $this->eventFactory->createWithStacktrace($payload);
         } else {
             $event = $this->eventFactory->create($payload);
@@ -157,6 +177,10 @@ final class Client implements ClientInterface
 
         if (null !== $scope) {
             $event = $scope->applyToEvent($event, $payload);
+
+            if (null === $event) {
+                return null;
+            }
         }
 
         return \call_user_func($this->options->getBeforeSendCallback(), $event);

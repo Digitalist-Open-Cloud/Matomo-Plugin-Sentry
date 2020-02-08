@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Sentry;
 
+use Sentry\Integration\ErrorListenerIntegration;
+use Sentry\Integration\ExceptionListenerIntegration;
+use Sentry\Integration\FatalErrorListenerIntegration;
 use Sentry\Integration\IntegrationInterface;
+use Sentry\Integration\RequestIntegration;
+use Sentry\Integration\TransactionIntegration;
 use Symfony\Component\OptionsResolver\Options as SymfonyOptions;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -21,7 +26,7 @@ final class Options
     public const DEFAULT_MAX_BREADCRUMBS = 100;
 
     /**
-     * @var array The configuration options
+     * @var array<string, mixed> The configuration options
      */
     private $options = [];
 
@@ -36,12 +41,12 @@ final class Options
     private $projectId;
 
     /**
-     * @var string The public key to authenticate the SDK
+     * @var string|null The public key to authenticate the SDK
      */
     private $publicKey;
 
     /**
-     * @var string The secret key to authenticate the SDK
+     * @var string|null The secret key to authenticate the SDK
      */
     private $secretKey;
 
@@ -49,6 +54,11 @@ final class Options
      * @var OptionsResolver The options resolver
      */
     private $resolver;
+
+    /**
+     * @var IntegrationInterface[]|null The list of default integrations
+     */
+    private $defaultIntegrations;
 
     /**
      * Class constructor.
@@ -66,8 +76,6 @@ final class Options
 
     /**
      * Gets the number of attempts to resend an event that failed to be sent.
-     *
-     * @return int
      */
     public function getSendAttempts(): int
     {
@@ -113,8 +121,6 @@ final class Options
     /**
      * Gets the sampling factor to apply to events. A value of 0 will deny
      * sending any events, and a value of 1 will send 100% of events.
-     *
-     * @return float
      */
     public function getSampleRate(): float
     {
@@ -136,8 +142,6 @@ final class Options
 
     /**
      * Gets whether the stacktrace will be attached on captureMessage.
-     *
-     * @return bool
      */
     public function shouldAttachStacktrace(): bool
     {
@@ -158,8 +162,6 @@ final class Options
 
     /**
      * Gets the number of lines of code context to capture, or null if none.
-     *
-     * @return int
      */
     public function getContextLines(): int
     {
@@ -180,8 +182,6 @@ final class Options
 
     /**
      * Returns whether the requests should be compressed using GZIP or not.
-     *
-     * @return bool
      */
     public function isCompressionEnabled(): bool
     {
@@ -202,8 +202,6 @@ final class Options
 
     /**
      * Gets the environment.
-     *
-     * @return string|null
      */
     public function getEnvironment(): ?string
     {
@@ -227,9 +225,13 @@ final class Options
      * events to Sentry.
      *
      * @return string[]
+     *
+     * @deprecated since version 2.3, to be removed in 3.0
      */
     public function getExcludedExceptions(): array
     {
+        @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "IgnoreErrorsIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
+
         return $this->options['excluded_exceptions'];
     }
 
@@ -238,9 +240,13 @@ final class Options
      * events to Sentry.
      *
      * @param string[] $exceptions The list of exception classes
+     *
+     * @deprecated since version 2.3, to be removed in 3.0
      */
     public function setExcludedExceptions(array $exceptions): void
     {
+        @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "IgnoreErrorsIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
+
         $options = array_merge($this->options, ['excluded_exceptions' => $exceptions]);
 
         $this->options = $this->resolver->resolve($options);
@@ -250,12 +256,19 @@ final class Options
      * Checks whether the given exception should be ignored when sending events
      * to Sentry.
      *
-     * @param \Throwable $exception The exception
+     * @param \Throwable $exception        The exception
+     * @param bool       $throwDeprecation Flag indicating whether to throw a
+     *                                     deprecation for the usage of this
+     *                                     method
      *
-     * @return bool
+     * @deprecated since version 2.3, to be removed in 3.0
      */
-    public function isExcludedException(\Throwable $exception): bool
+    public function isExcludedException(\Throwable $exception, bool $throwDeprecation = true): bool
     {
+        if ($throwDeprecation) {
+            @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "IgnoreErrorsIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
+        }
+
         foreach ($this->options['excluded_exceptions'] as $exceptionClass) {
             if ($exception instanceof $exceptionClass) {
                 return true;
@@ -288,9 +301,29 @@ final class Options
     }
 
     /**
-     * Gets the project ID number to send to the Sentry server.
+     * Gets the list of paths which has to be identified as in_app.
      *
-     * @return string|null
+     * @return string[]
+     */
+    public function getInAppIncludedPaths(): array
+    {
+        return $this->options['in_app_include'];
+    }
+
+    /**
+     * Set the list of paths to include in in_app detection.
+     *
+     * @param string[] $paths The list of paths
+     */
+    public function setInAppIncludedPaths(array $paths): void
+    {
+        $options = array_merge($this->options, ['in_app_include' => $paths]);
+
+        $this->options = $this->resolver->resolve($options);
+    }
+
+    /**
+     * Gets the project ID number to send to the Sentry server.
      */
     public function getProjectId(): ?string
     {
@@ -299,8 +332,6 @@ final class Options
 
     /**
      * Gets the project which the authenticated user is bound to.
-     *
-     * @return string|null
      */
     public function getProjectRoot(): ?string
     {
@@ -321,8 +352,6 @@ final class Options
 
     /**
      * Gets the public key to authenticate the SDK.
-     *
-     * @return string|null
      */
     public function getPublicKey(): ?string
     {
@@ -331,8 +360,6 @@ final class Options
 
     /**
      * Gets the secret key to authenticate the SDK.
-     *
-     * @return string|null
      */
     public function getSecretKey(): ?string
     {
@@ -341,8 +368,6 @@ final class Options
 
     /**
      * Gets the logger used by Sentry.
-     *
-     * @return string
      */
     public function getLogger(): string
     {
@@ -385,8 +410,6 @@ final class Options
 
     /**
      * Gets the DSN of the Sentry server the authenticated user is bound to.
-     *
-     * @return string|null
      */
     public function getDsn(): ?string
     {
@@ -395,8 +418,6 @@ final class Options
 
     /**
      * Gets the name of the server the SDK is running on (e.g. the hostname).
-     *
-     * @return string
      */
     public function getServerName(): string
     {
@@ -419,7 +440,7 @@ final class Options
      * Gets a callback that will be invoked before an event is sent to the server.
      * If `null` is returned it won't be sent.
      *
-     * @return callable
+     * @psalm-return callable(Event): ?Event
      */
     public function getBeforeSendCallback(): callable
     {
@@ -431,6 +452,8 @@ final class Options
      * be captured or not.
      *
      * @param callable $callback The callable
+     *
+     * @psalm-param callable(Event): ?Event $callback
      */
     public function setBeforeSendCallback(callable $callback): void
     {
@@ -442,7 +465,7 @@ final class Options
     /**
      * Gets a list of default tags for events.
      *
-     * @return string[]
+     * @return array<string, string>
      */
     public function getTags(): array
     {
@@ -452,7 +475,7 @@ final class Options
     /**
      * Sets a list of default tags for events.
      *
-     * @param string[] $tags A list of tags
+     * @param array<string, string> $tags A list of tags
      */
     public function setTags(array $tags): void
     {
@@ -462,9 +485,7 @@ final class Options
     }
 
     /**
-     * Gets a bit mask for error_reporting used in {@link ErrorHandler::handleError}.
-     *
-     * @return int
+     * Gets a bit mask for error_reporting used in {@link ErrorListenerIntegration} to filter which errors to report.
      */
     public function getErrorTypes(): int
     {
@@ -472,7 +493,7 @@ final class Options
     }
 
     /**
-     * Sets a bit mask for error_reporting used in {@link ErrorHandler::handleError}.
+     * Sets a bit mask for error_reporting used in {@link ErrorListenerIntegration} to filter which errors to report.
      *
      * @param int $errorTypes The bit mask
      */
@@ -485,8 +506,6 @@ final class Options
 
     /**
      * Gets the maximum number of breadcrumbs sent with events.
-     *
-     * @return int
      */
     public function getMaxBreadcrumbs(): int
     {
@@ -508,7 +527,7 @@ final class Options
     /**
      * Gets a callback that will be invoked when adding a breadcrumb.
      *
-     * @return callable
+     * @psalm-return callable(Breadcrumb): ?Breadcrumb
      */
     public function getBeforeBreadcrumbCallback(): callable
     {
@@ -523,6 +542,8 @@ final class Options
      * cause the breadcrumb to be dropped.
      *
      * @param callable $callback The callback
+     *
+     * @psalm-param callable(Breadcrumb): ?Breadcrumb $callback
      */
     public function setBeforeBreadcrumbCallback(callable $callback): void
     {
@@ -532,11 +553,13 @@ final class Options
     }
 
     /**
-     * Set integrations that will be used by the created client.
+     * Sets the list of integrations that should be installed after SDK was
+     * initialized or a function that receives default integrations and returns
+     * a new, updated list.
      *
-     * @param IntegrationInterface[] $integrations The integrations
+     * @param IntegrationInterface[]|callable $integrations The list or callable
      */
-    public function setIntegrations(array $integrations): void
+    public function setIntegrations($integrations): void
     {
         $options = array_merge($this->options, ['integrations' => $integrations]);
 
@@ -550,13 +573,27 @@ final class Options
      */
     public function getIntegrations(): array
     {
-        return $this->options['integrations'];
+        $defaultIntegrations = $this->getDefaultIntegrations();
+        $userIntegrations = $this->options['integrations'];
+        $integrations = [];
+
+        if (\is_callable($userIntegrations)) {
+            return $userIntegrations($defaultIntegrations);
+        }
+
+        foreach ($defaultIntegrations as $defaultIntegration) {
+            $integrations[\get_class($defaultIntegration)] = $defaultIntegration;
+        }
+
+        foreach ($userIntegrations as $userIntegration) {
+            $integrations[\get_class($userIntegration)] = $userIntegration;
+        }
+
+        return array_values($integrations);
     }
 
     /**
      * Should default PII be sent by default.
-     *
-     * @return bool
      */
     public function shouldSendDefaultPii(): bool
     {
@@ -577,8 +614,6 @@ final class Options
 
     /**
      * Returns whether the default integrations are enabled.
-     *
-     * @return bool
      */
     public function hasDefaultIntegrations(): bool
     {
@@ -599,8 +634,6 @@ final class Options
 
     /**
      * Gets the max length for values in the event payload.
-     *
-     * @return int
      */
     public function getMaxValueLength(): int
     {
@@ -621,8 +654,6 @@ final class Options
 
     /**
      * Gets the http proxy setting.
-     *
-     * @return string|null
      */
     public function getHttpProxy(): ?string
     {
@@ -666,6 +697,65 @@ final class Options
     }
 
     /**
+     * Gets the limit up to which integrations should capture the HTTP request
+     * body.
+     */
+    public function getMaxRequestBodySize(): string
+    {
+        return $this->options['max_request_body_size'];
+    }
+
+    /**
+     * Sets the limit up to which integrations should capture the HTTP request
+     * body.
+     *
+     * @param string $maxRequestBodySize The limit up to which request body are
+     *                                   captured. It can be set to one of the
+     *                                   following values:
+     *
+     *                                    - never: request bodies are never sent
+     *                                    - small: only small request bodies will
+     *                                      be captured where the cutoff for small
+     *                                      depends on the SDK (typically 4KB)
+     *                                    - medium: medium-sized requests and small
+     *                                      requests will be captured. (typically 10KB)
+     *                                    - always: the SDK will always capture the
+     *                                      request body for as long as sentry can
+     *                                      make sense of it
+     */
+    public function setMaxRequestBodySize(string $maxRequestBodySize): void
+    {
+        $options = array_merge($this->options, ['max_request_body_size' => $maxRequestBodySize]);
+
+        $this->options = $this->resolver->resolve($options);
+    }
+
+    /**
+     * Gets the callbacks used to customize how objects are serialized in the payload
+     * of the event.
+     *
+     * @return array<string, callable>
+     */
+    public function getClassSerializers(): array
+    {
+        return $this->options['class_serializers'];
+    }
+
+    /**
+     * Sets a list of callables that will be called to customize how objects are
+     * serialized in the event's payload. The list must be a map of FQCN/callable
+     * pairs.
+     *
+     * @param array<string, callable> $serializers The list of serializer callbacks
+     */
+    public function setClassSerializers(array $serializers): void
+    {
+        $options = array_merge($this->options, ['class_serializers' => $serializers]);
+
+        $this->options = $this->resolver->resolve($options);
+    }
+
+    /**
      * Configures the options of the client.
      *
      * @param OptionsResolver $resolver The resolver for the options
@@ -684,27 +774,30 @@ final class Options
             'attach_stacktrace' => false,
             'context_lines' => 5,
             'enable_compression' => true,
-            'environment' => null,
+            'environment' => $_SERVER['SENTRY_ENVIRONMENT'] ?? null,
             'project_root' => null,
             'logger' => 'php',
-            'release' => null,
+            'release' => $_SERVER['SENTRY_RELEASE'] ?? null,
             'dsn' => $_SERVER['SENTRY_DSN'] ?? null,
             'server_name' => gethostname(),
-            'before_send' => function (Event $event): ?Event {
+            'before_send' => static function (Event $event): Event {
                 return $event;
             },
             'tags' => [],
             'error_types' => E_ALL,
             'max_breadcrumbs' => self::DEFAULT_MAX_BREADCRUMBS,
-            'before_breadcrumb' => function (Breadcrumb $breadcrumb): ?Breadcrumb {
+            'before_breadcrumb' => static function (Breadcrumb $breadcrumb): Breadcrumb {
                 return $breadcrumb;
             },
             'excluded_exceptions' => [],
             'in_app_exclude' => [],
+            'in_app_include' => [],
             'send_default_pii' => false,
             'max_value_length' => 1024,
             'http_proxy' => null,
             'capture_silenced_errors' => false,
+            'max_request_body_size' => 'medium',
+            'class_serializers' => [],
         ]);
 
         $resolver->setAllowedTypes('send_attempts', 'int');
@@ -716,41 +809,53 @@ final class Options
         $resolver->setAllowedTypes('environment', ['null', 'string']);
         $resolver->setAllowedTypes('excluded_exceptions', 'array');
         $resolver->setAllowedTypes('in_app_exclude', 'array');
+        $resolver->setAllowedTypes('in_app_include', 'array');
         $resolver->setAllowedTypes('project_root', ['null', 'string']);
         $resolver->setAllowedTypes('logger', 'string');
         $resolver->setAllowedTypes('release', ['null', 'string']);
-        $resolver->setAllowedTypes('dsn', ['null', 'boolean', 'string']);
+        $resolver->setAllowedTypes('dsn', ['null', 'string', 'bool']);
         $resolver->setAllowedTypes('server_name', 'string');
         $resolver->setAllowedTypes('before_send', ['callable']);
         $resolver->setAllowedTypes('tags', 'array');
         $resolver->setAllowedTypes('error_types', ['int']);
         $resolver->setAllowedTypes('max_breadcrumbs', 'int');
         $resolver->setAllowedTypes('before_breadcrumb', ['callable']);
-        $resolver->setAllowedTypes('integrations', 'array');
+        $resolver->setAllowedTypes('integrations', ['array', 'callable']);
         $resolver->setAllowedTypes('send_default_pii', 'bool');
         $resolver->setAllowedTypes('default_integrations', 'bool');
         $resolver->setAllowedTypes('max_value_length', 'int');
         $resolver->setAllowedTypes('http_proxy', ['null', 'string']);
         $resolver->setAllowedTypes('capture_silenced_errors', 'bool');
+        $resolver->setAllowedTypes('max_request_body_size', 'string');
+        $resolver->setAllowedTypes('class_serializers', 'array');
 
+        $resolver->setAllowedValues('max_request_body_size', ['none', 'small', 'medium', 'always']);
         $resolver->setAllowedValues('dsn', \Closure::fromCallable([$this, 'validateDsnOption']));
         $resolver->setAllowedValues('integrations', \Closure::fromCallable([$this, 'validateIntegrationsOption']));
         $resolver->setAllowedValues('max_breadcrumbs', \Closure::fromCallable([$this, 'validateMaxBreadcrumbsOptions']));
+        $resolver->setAllowedValues('class_serializers', \Closure::fromCallable([$this, 'validateClassSerializersOption']));
+        $resolver->setAllowedValues('tags', \Closure::fromCallable([$this, 'validateTagsOption']));
 
         $resolver->setNormalizer('dsn', \Closure::fromCallable([$this, 'normalizeDsnOption']));
-        $resolver->setNormalizer('project_root', function (SymfonyOptions $options, $value) {
+        $resolver->setNormalizer('project_root', function (SymfonyOptions $options, ?string $value) {
             if (null === $value) {
                 return null;
             }
 
+            @trigger_error('The option "project_root" is deprecated. Please use the "in_app_include" option instead.', E_USER_DEPRECATED);
+
             return $this->normalizeAbsolutePath($value);
         });
 
-        $resolver->setNormalizer('prefixes', function (SymfonyOptions $options, $value) {
+        $resolver->setNormalizer('prefixes', function (SymfonyOptions $options, array $value) {
             return array_map([$this, 'normalizeAbsolutePath'], $value);
         });
 
-        $resolver->setNormalizer('in_app_exclude', function (SymfonyOptions $options, $value) {
+        $resolver->setNormalizer('in_app_exclude', function (SymfonyOptions $options, array $value) {
+            return array_map([$this, 'normalizeAbsolutePath'], $value);
+        });
+
+        $resolver->setNormalizer('in_app_include', function (SymfonyOptions $options, array $value) {
             return array_map([$this, 'normalizeAbsolutePath'], $value);
         });
     }
@@ -759,10 +864,8 @@ final class Options
      * Normalizes the given path as an absolute path.
      *
      * @param string $value The path
-     *
-     * @return string
      */
-    private function normalizeAbsolutePath($value)
+    private function normalizeAbsolutePath(string $value): string
     {
         $path = @realpath($value);
 
@@ -777,12 +880,10 @@ final class Options
      * Normalizes the DSN option by parsing the host, public and secret keys and
      * an optional path.
      *
-     * @param SymfonyOptions $options The configuration options
-     * @param mixed          $dsn     The actual value of the option to normalize
-     *
-     * @return string|null
+     * @param SymfonyOptions$options The configuration options
+     * @param string|null $dsn The actual value of the option to normalize
      */
-    private function normalizeDsnOption(SymfonyOptions $options, $dsn): ?string
+    private function normalizeDsnOption(SymfonyOptions $options, ?string $dsn): ?string
     {
         if (empty($dsn)) {
             return null;
@@ -800,6 +901,10 @@ final class Options
         }
 
         $parsed = @parse_url($dsn);
+
+        if (false === $parsed || !isset($parsed['scheme'], $parsed['host'], $parsed['path'], $parsed['user'])) {
+            return null;
+        }
 
         $this->dsn = $parsed['scheme'] . '://' . $parsed['host'];
 
@@ -830,8 +935,6 @@ final class Options
      * that the URL is valid.
      *
      * @param string|null $dsn The value of the option
-     *
-     * @return bool
      */
     private function validateDsnOption(?string $dsn): bool
     {
@@ -875,12 +978,14 @@ final class Options
      * Validates that the elements of this option are all class instances that
      * implements the {@see IntegrationInterface} interface.
      *
-     * @param array $integrations The value to validate
-     *
-     * @return bool
+     * @param array|callable $integrations The value to validate
      */
-    private function validateIntegrationsOption(array $integrations): bool
+    private function validateIntegrationsOption($integrations): bool
     {
+        if (\is_callable($integrations)) {
+            return true;
+        }
+
         foreach ($integrations as $integration) {
             if (!$integration instanceof IntegrationInterface) {
                 return false;
@@ -894,11 +999,65 @@ final class Options
      * Validates if the value of the max_breadcrumbs option is in range.
      *
      * @param int $value The value to validate
-     *
-     * @return bool
      */
     private function validateMaxBreadcrumbsOptions(int $value): bool
     {
         return $value >= 0 && $value <= self::DEFAULT_MAX_BREADCRUMBS;
+    }
+
+    /**
+     * Validates that the values passed to the `class_serializers` option are valid.
+     *
+     * @param array $serializers The value to validate
+     */
+    private function validateClassSerializersOption(array $serializers): bool
+    {
+        foreach ($serializers as $class => $serializer) {
+            if (!\is_string($class) || !\is_callable($serializer)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Validates that the values passed to the `tags` option are valid.
+     *
+     * @param array $tags The value to validate
+     */
+    private function validateTagsOption(array $tags): bool
+    {
+        foreach ($tags as $tagName => $tagValue) {
+            if (!\is_string($tagValue)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets the list of default integrations.
+     *
+     * @return IntegrationInterface[]
+     */
+    private function getDefaultIntegrations(): array
+    {
+        if (!$this->options['default_integrations']) {
+            return [];
+        }
+
+        if (null === $this->defaultIntegrations) {
+            $this->defaultIntegrations = [
+                new ExceptionListenerIntegration(),
+                new ErrorListenerIntegration(null, false),
+                new FatalErrorListenerIntegration(),
+                new RequestIntegration(),
+                new TransactionIntegration(),
+            ];
+        }
+
+        return $this->defaultIntegrations;
     }
 }

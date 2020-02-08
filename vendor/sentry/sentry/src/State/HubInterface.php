@@ -18,15 +18,11 @@ interface HubInterface
 {
     /**
      * Gets the client bound to the top of the stack.
-     *
-     * @return ClientInterface|null
      */
     public function getClient(): ?ClientInterface;
 
     /**
      * Gets the ID of the last captured event.
-     *
-     * @return string|null
      */
     public function getLastEventId(): ?string;
 
@@ -36,8 +32,6 @@ interface HubInterface
      * information added to this scope will be removed once the scope ends. Be
      * sure to always remove this scope with {@see Hub::popScope} when the
      * operation finishes or throws.
-     *
-     * @return Scope
      */
     public function pushScope(): Scope;
 
@@ -45,8 +39,6 @@ interface HubInterface
      * Removes a previously pushed scope from the stack. This restores the state
      * before the scope was pushed. All breadcrumbs and context information added
      * since the last call to {@see Hub::pushScope} are discarded.
-     *
-     * @return bool
      */
     public function popScope(): bool;
 
@@ -78,8 +70,6 @@ interface HubInterface
      *
      * @param string   $message The message
      * @param Severity $level   The severity level of the message
-     *
-     * @return string|null
      */
     public function captureMessage(string $message, ?Severity $level = null): ?string;
 
@@ -87,8 +77,6 @@ interface HubInterface
      * Captures an exception event and sends it to Sentry.
      *
      * @param \Throwable $exception The exception
-     *
-     * @return string|null
      */
     public function captureException(\Throwable $exception): ?string;
 
@@ -96,15 +84,11 @@ interface HubInterface
      * Captures a new event using the provided data.
      *
      * @param array $payload The data of the event being captured
-     *
-     * @return string|null
      */
     public function captureEvent(array $payload): ?string;
 
     /**
      * Captures an event that logs the last occurred error.
-     *
-     * @return string|null
      */
     public function captureLastError(): ?string;
 
@@ -122,16 +106,20 @@ interface HubInterface
     /**
      * Returns the current global Hub.
      *
-     * @return self
+     * @return HubInterface
+     *
+     * @deprecated since version 2.2, to be removed in 3.0
      */
     public static function getCurrent(): self;
 
     /**
      * Sets the Hub as the current.
      *
-     * @param self $hub The Hub that will become the current one
+     * @param HubInterface $hub The Hub that will become the current one
      *
-     * @return self
+     * @return HubInterface
+     *
+     * @deprecated since version 2.2, to be removed in 3.0
      */
     public static function setCurrent(self $hub): self;
 
@@ -140,7 +128,11 @@ interface HubInterface
      *
      * @param string $className The FQCN of the integration
      *
-     * @return IntegrationInterface|null
+     * @psalm-template T of IntegrationInterface
+     *
+     * @psalm-param class-string<T> $className
+     *
+     * @psalm-return T|null
      */
     public function getIntegration(string $className): ?IntegrationInterface;
 }

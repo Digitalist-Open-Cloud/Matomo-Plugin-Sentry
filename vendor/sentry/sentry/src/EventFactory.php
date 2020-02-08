@@ -7,7 +7,6 @@ namespace Sentry;
 use Sentry\Exception\EventCreationException;
 use Sentry\Serializer\RepresentationSerializerInterface;
 use Sentry\Serializer\SerializerInterface;
-use Zend\Diactoros\ServerRequestFactory;
 
 /**
  * Factory for the {@see Event} class.
@@ -80,8 +79,8 @@ final class EventFactory implements EventFactoryInterface
     {
         try {
             $event = new Event();
-        } catch (\Throwable $error) {
-            throw new EventCreationException($error);
+        } catch (\Throwable $exception) {
+            throw new EventCreationException($exception);
         }
 
         $event->setSdkIdentifier($this->sdkIdentifier);
@@ -90,17 +89,6 @@ final class EventFactory implements EventFactoryInterface
         $event->setRelease($this->options->getRelease());
         $event->getTagsContext()->merge($this->options->getTags());
         $event->setEnvironment($this->options->getEnvironment());
-
-        if (isset($payload['transaction'])) {
-            $event->setTransaction($payload['transaction']);
-        } else {
-            $request = ServerRequestFactory::fromGlobals();
-            $serverParams = $request->getServerParams();
-
-            if (isset($serverParams['PATH_INFO'])) {
-                $event->setTransaction($serverParams['PATH_INFO']);
-            }
-        }
 
         if (isset($payload['logger'])) {
             $event->setLogger($payload['logger']);
@@ -145,25 +133,18 @@ final class EventFactory implements EventFactoryInterface
         $currentException = $exception;
 
         do {
-            if ($this->options->isExcludedException($currentException)) {
-                continue;
-            }
-
-            $data = [
+            $exceptions[] = [
                 'type' => \get_class($currentException),
-                'value' => $this->serializer->serialize($currentException->getMessage()),
+                'value' => $currentException->getMessage(),
+                'stacktrace' => Stacktrace::createFromBacktrace(
+                    $this->options,
+                    $this->serializer,
+                    $this->representationSerializer,
+                    $currentException->getTrace(),
+                    $currentException->getFile(),
+                    $currentException->getLine()
+                ),
             ];
-
-            $data['stacktrace'] = Stacktrace::createFromBacktrace(
-                $this->options,
-                $this->serializer,
-                $this->representationSerializer,
-                $currentException->getTrace(),
-                $currentException->getFile(),
-                $currentException->getLine()
-            );
-
-            $exceptions[] = $data;
         } while ($currentException = $currentException->getPrevious());
 
         $event->setExceptions($exceptions);
