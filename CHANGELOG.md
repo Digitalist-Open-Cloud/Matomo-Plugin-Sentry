@@ -1,5 +1,9 @@
 ## Changelog
 
+#### 0.3.1
+
+- use same version of guzzle as SearchEngineKeywordsPerformance
+
 #### 0.3.0
 
 - don't ship whole node_modules directory

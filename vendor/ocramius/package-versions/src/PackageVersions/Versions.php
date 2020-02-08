@@ -13,9 +13,16 @@ namespace PackageVersions;
 final class Versions
 {
     public const ROOT_PACKAGE_NAME = '__root__';
+    /**
+     * Array of all available composer packages.
+     * Dont read this array from your calling code, but use the \PackageVersions\Versions::getVersion() method instead.
+     *
+     * @var array<string, string>
+     * @internal
+     */
     public const VERSIONS          = array (
   'clue/stream-filter' => 'v1.4.1@5a58cc30a8bd6a4eb8f856adf61dd3e013f53f71',
-  'guzzlehttp/guzzle' => '6.5.2@43ece0e75098b7ecd8d13918293029e555a50f82',
+  'guzzlehttp/guzzle' => '6.3.3@407b0cb880ace85c9b63c5f9551db498cb2d50ba',
   'guzzlehttp/promises' => 'v1.3.1@a59da6cf61d80060647ff4d3eb2c03a2bc694646',
   'guzzlehttp/psr7' => '1.6.1@239400de7a173fe9901b9ac7c06497751f00727a',
   'http-interop/http-factory-guzzle' => '1.0.0@34861658efb9899a6618cef03de46e2a52c80fc0',
@@ -37,7 +44,7 @@ final class Versions
   'sentry/sentry' => '2.3.1@6d736f8cefa989f6171e30e1d1bfa214f7f5ab58',
   'symfony/options-resolver' => 'v5.0.4@b1ab86ce52b0c0abe031367a173005a025e30e04',
   'symfony/polyfill-uuid' => 'v1.13.1@7d4215b6944add5073f0ec313a21e1bc2520520d',
-  '__root__' => 'dev-master@8ff08b8824c919e7dde5be214196a6602c064389',
+  '__root__' => 'dev-master@cc9bcdca8f57dbce368122978597414ddf3d9726',
 );
 
     private function __construct()
@@ -46,6 +53,8 @@ final class Versions
 
     /**
      * @throws \OutOfBoundsException If a version cannot be located.
+     *
+     * @psalm-param key-of<self::VERSIONS> $packageName
      */
     public static function getVersion(string $packageName) : string
     {
@@ -54,7 +63,7 @@ final class Versions
         }
 
         throw new \OutOfBoundsException(
-            'Required package "' . $packageName . '" is not installed: cannot detect its version'
+            'Required package "' . $packageName . '" is not installed: check your ./vendor/composer/installed.json and/or ./composer.lock files'
         );
     }
 }
