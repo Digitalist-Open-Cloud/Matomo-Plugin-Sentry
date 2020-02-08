@@ -1,5 +1,10 @@
 ## Changelog
 
+#### 0.3.0
+
+- don't ship whole node_modules directory
+- update sentry SDKs
+
 #### 0.2.3
 
 don't load current plugin
