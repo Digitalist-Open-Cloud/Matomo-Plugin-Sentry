@@ -63,7 +63,7 @@ class SentryLogger extends \Piwik\Plugin
     }
 
     public function getJavaScriptFiles(&$jsFiles) {
-        $jsFiles[] = 'plugins/SentryLogger/node_modules/@sentry/browser/build/bundle.min.js';
+        $jsFiles[] = 'plugins/SentryLogger/libs/bundle.min.js';
         $jsFiles[] = 'plugins/SentryLogger/javascripts/init.js';
     }
 
