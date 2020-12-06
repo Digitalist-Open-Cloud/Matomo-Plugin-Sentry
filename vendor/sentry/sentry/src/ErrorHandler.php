@@ -9,11 +9,9 @@ use Sentry\Exception\SilencedErrorException;
 
 /**
  * This class implements a simple error handler that catches all configured
- * error types and logs them using a certain Raven client. Registering more
- * than once this error handler is not supported and will lead to nasty problems.
- * The code is based on the Symfony Debug component.
- *
- * @author Stefano Arlandini <sarlandini@alice.it>
+ * error types and relays them to all configured listeners. Registering this
+ * error handler more than once is not supported and will lead to nasty
+ * problems. The code is based on the Symfony ErrorHandler component.
  */
 final class ErrorHandler
 {
@@ -63,6 +61,8 @@ final class ErrorHandler
 
     /**
      * @var callable|null The previous exception handler, if any
+     *
+     * @psalm-var null|callable(\Throwable): void
      */
     private $previousExceptionHandler;
 
@@ -118,38 +118,6 @@ final class ErrorHandler
     {
         $this->exceptionReflection = new \ReflectionProperty(\Exception::class, 'trace');
         $this->exceptionReflection->setAccessible(true);
-    }
-
-    /**
-     * Gets the current registered error handler; if none is present, it will
-     * register it. Subsequent calls will not change the reserved memory size.
-     *
-     * @param int  $reservedMemorySize The amount of memory to reserve for the
-     *                                 fatal error handler
-     * @param bool $triggerDeprecation Whether to trigger the deprecation about
-     *                                 the usage of this method. This is used
-     *                                 to avoid errors when this method is called
-     *                                 from other methods of this class until
-     *                                 their implementation and behavior of
-     *                                 registering all handlers can be changed
-     *
-     * @deprecated since version 2.1, to be removed in 3.0.
-     */
-    public static function registerOnce(int $reservedMemorySize = self::DEFAULT_RESERVED_MEMORY_SIZE, bool $triggerDeprecation = true): self
-    {
-        if ($triggerDeprecation) {
-            @trigger_error(sprintf('Method %s() is deprecated since version 2.1 and will be removed in 3.0. Please use the registerOnceErrorHandler(), registerOnceFatalErrorHandler() or registerOnceExceptionHandler() methods instead.', __METHOD__), E_USER_DEPRECATED);
-        }
-
-        if (null === self::$handlerInstance) {
-            self::$handlerInstance = new self();
-        }
-
-        self::registerOnceErrorHandler();
-        self::registerOnceFatalErrorHandler($reservedMemorySize);
-        self::registerOnceExceptionHandler();
-
-        return self::$handlerInstance;
     }
 
     /**
@@ -235,72 +203,6 @@ final class ErrorHandler
     }
 
     /**
-     * Adds a listener to the current error handler to be called upon each
-     * invoked captured error; if no handler is registered, this method will
-     * instantiate and register it.
-     *
-     * @param callable $listener A callable that will act as a listener;
-     *                           this callable will receive a single
-     *                           \ErrorException argument
-     *
-     * @psalm-param callable(\ErrorException): void $listener
-     *
-     * @deprecated since version 2.1, to be removed in 3.0
-     */
-    public static function addErrorListener(callable $listener): void
-    {
-        @trigger_error(sprintf('Method %s() is deprecated since version 2.1 and will be removed in 3.0. Use the addErrorHandlerListener() method instead.', __METHOD__), E_USER_DEPRECATED);
-
-        /** @psalm-suppress DeprecatedMethod */
-        $handler = self::registerOnce(self::DEFAULT_RESERVED_MEMORY_SIZE, false);
-        $handler->errorListeners[] = $listener;
-    }
-
-    /**
-     * Adds a listener to the current error handler to be called upon each
-     * invoked captured fatal error; if no handler is registered, this method
-     * will instantiate and register it.
-     *
-     * @param callable $listener A callable that will act as a listener;
-     *                           this callable will receive a single
-     *                           \ErrorException argument
-     *
-     * @psalm-param callable(FatalErrorException): void $listener
-     *
-     * @deprecated since version 2.1, to be removed in 3.0
-     */
-    public static function addFatalErrorListener(callable $listener): void
-    {
-        @trigger_error(sprintf('Method %s() is deprecated since version 2.1 and will be removed in 3.0. Use the addFatalErrorHandlerListener() method instead.', __METHOD__), E_USER_DEPRECATED);
-
-        /** @psalm-suppress DeprecatedMethod */
-        $handler = self::registerOnce(self::DEFAULT_RESERVED_MEMORY_SIZE, false);
-        $handler->fatalErrorListeners[] = $listener;
-    }
-
-    /**
-     * Adds a listener to the current error handler to be called upon each
-     * invoked captured exception; if no handler is registered, this method
-     * will instantiate and register it.
-     *
-     * @param callable $listener A callable that will act as a listener;
-     *                           this callable will receive a single
-     *                           \Throwable argument
-     *
-     * @psalm-param callable(\Throwable): void $listener
-     *
-     * @deprecated since version 2.1, to be removed in 3.0
-     */
-    public static function addExceptionListener(callable $listener): void
-    {
-        @trigger_error(sprintf('Method %s() is deprecated since version 2.1 and will be removed in 3.0. Use the addExceptionHandlerListener() method instead.', __METHOD__), E_USER_DEPRECATED);
-
-        /** @psalm-suppress DeprecatedMethod */
-        $handler = self::registerOnce(self::DEFAULT_RESERVED_MEMORY_SIZE, false);
-        $handler->exceptionListeners[] = $listener;
-    }
-
-    /**
      * Adds a listener to the current error handler that will be called every
      * time an error is captured.
      *
@@ -346,15 +248,15 @@ final class ErrorHandler
     }
 
     /**
-     * Handles errors by capturing them through the Raven client according to
-     * the configured bit field.
+     * Handles errors by capturing them through the client according to the
+     * configured bit field.
      *
-     * @param int        $level      The level of the error raised, represented by
-     *                               one of the E_* constants
-     * @param string     $message    The error message
-     * @param string     $file       The filename the error was raised in
-     * @param int        $line       The line number the error was raised at
-     * @param array|null $errcontext The error context (deprecated since PHP 7.2)
+     * @param int                       $level      The level of the error raised, represented by
+     *                                              one of the E_* constants
+     * @param string                    $message    The error message
+     * @param string                    $file       The filename the error was raised in
+     * @param int                       $line       The line number the error was raised at
+     * @param array<string, mixed>|null $errcontext The error context (deprecated since PHP 7.2)
      *
      * @return bool If the function returns `false` then the PHP native error
      *              handler will be called
@@ -376,19 +278,18 @@ final class ErrorHandler
         $this->invokeListeners($this->errorListeners, $errorAsException);
 
         if (null !== $this->previousErrorHandler) {
-            return false !== \call_user_func($this->previousErrorHandler, $level, $message, $file, $line, $errcontext);
+            return false !== ($this->previousErrorHandler)($level, $message, $file, $line, $errcontext);
         }
 
         return false;
     }
 
     /**
-     * Handles fatal errors by capturing them through the Raven client. This
-     * method is used as callback of a shutdown function.
-     *
-     * @param array|null $error The error details as returned by error_get_last()
+     * Tries to handle a fatal error if any and relay them to the listeners.
+     * It only tries to do this if we still have some reserved memory at
+     * disposal. This method is used as callback of a shutdown function.
      */
-    private function handleFatalError(array $error = null): void
+    private function handleFatalError(): void
     {
         // If there is not enough memory that can be used to handle the error
         // do nothing
@@ -397,17 +298,13 @@ final class ErrorHandler
         }
 
         self::$reservedMemory = null;
-
-        if (null === $error) {
-            $error = error_get_last();
-        }
+        $error = error_get_last();
 
         if (!empty($error) && $error['type'] & (E_ERROR | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING)) {
             $errorAsException = new FatalErrorException(self::ERROR_LEVELS_DESCRIPTION[$error['type']] . ': ' . $error['message'], 0, $error['type'], $error['file'], $error['line']);
 
             $this->exceptionReflection->setValue($errorAsException, []);
 
-            $this->invokeListeners($this->errorListeners, $errorAsException);
             $this->invokeListeners($this->fatalErrorListeners, $errorAsException);
         }
     }
@@ -434,16 +331,18 @@ final class ErrorHandler
         try {
             if (null !== $previousExceptionHandler) {
                 $previousExceptionHandler($exception);
+
+                return;
             }
         } catch (\Throwable $previousExceptionHandlerException) {
-            // Do nothing, we just need to set the $previousExceptionHandlerException
-            // variable to the exception we just catched to compare it later
-            // with the original object instance
+            // This `catch` statement is here to forcefully override the
+            // $previousExceptionHandlerException variable with the exception
+            // we just caught
         }
 
-        // If the exception object instance is the same as the one catched from
-        // the previous exception handler, if any, give it back to the native
-        // PHP handler to prevent infinite circular loop
+        // If the instance of the exception we're handling is the same as the one
+        // caught from the previous exception handler then we give it back to the
+        // native PHP handler to prevent an infinite loop
         if ($exception === $previousExceptionHandlerException) {
             // Disable the fatal error handler or the error will be reported twice
             self::$reservedMemory = null;
@@ -458,9 +357,11 @@ final class ErrorHandler
      * Cleans and returns the backtrace without the first frames that belong to
      * this error handler.
      *
-     * @param array  $backtrace The backtrace to clear
-     * @param string $file      The filename the backtrace was raised in
-     * @param int    $line      The line number the backtrace was raised at
+     * @param array<int, mixed> $backtrace The backtrace to clear
+     * @param string            $file      The filename the backtrace was raised in
+     * @param int               $line      The line number the backtrace was raised at
+     *
+     * @return array<int, mixed>
      */
     private function cleanBacktraceFromErrorHandlerFrames(array $backtrace, string $file, int $line): array
     {
@@ -490,7 +391,7 @@ final class ErrorHandler
     {
         foreach ($listeners as $listener) {
             try {
-                \call_user_func($listener, $throwable);
+                $listener($throwable);
             } catch (\Throwable $exception) {
                 // Do nothing as this should be as transparent as possible
             }

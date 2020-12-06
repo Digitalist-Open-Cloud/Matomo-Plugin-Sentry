@@ -3,7 +3,8 @@
 set -x
 set -e
 
-rm -r node_modules
+rm -rf node_modules
+rm -rf tmp
 
 mkdir -p tmp
 cp package.json tmp/

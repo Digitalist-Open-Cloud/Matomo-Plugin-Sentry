@@ -4,16 +4,18 @@
     </a>
 </p>
 
-# Sentry for PHP
+# Sentry SDK for PHP
 
-[![Build Status](https://img.shields.io/travis/getsentry/sentry-php/master?logo=travis)](http://travis-ci.org/getsentry/sentry-php)
-[![AppVeyor Build Status](https://img.shields.io/appveyor/ci/sentry/sentry-php/master?logo=appveyor)](https://ci.appveyor.com/project/sentry/sentry-php)
 [![Total Downloads](https://poser.pugx.org/sentry/sentry/downloads)](https://packagist.org/packages/sentry/sentry)
 [![Monthly Downloads](https://poser.pugx.org/sentry/sentry/d/monthly)](https://packagist.org/packages/sentry/sentry)
 [![Latest Stable Version](https://poser.pugx.org/sentry/sentry/v/stable)](https://packagist.org/packages/sentry/sentry)
 [![License](https://poser.pugx.org/sentry/sentry/license)](https://packagist.org/packages/sentry/sentry)
-[![Scrutinizer Code Quality](https://img.shields.io/scrutinizer/g/getsentry/sentry-php/master.svg)](https://scrutinizer-ci.com/g/getsentry/sentry-php/)
-[![Code Coverage](https://img.shields.io/scrutinizer/coverage/g/getsentry/sentry-php/master.svg)](https://scrutinizer-ci.com/g/getsentry/sentry-php/)
+[![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/cWnMQeA)
+
+| Version | Build Status | Code Coverage |
+|:---------:|:-------------:|:-----:|
+| `master`| [![Build Status][Travis Master Build Status Image]][Travis Build Status] [![Build Status][AppVeyor Master Build Status Image]][AppVeyor Build Status] | [![Coverage Status][Master Code Coverage Image]][Master Code Coverage] |
+| `develop` | [![Build Status][Travis Develop Build Status Image]][Travis Build Status] [![Build Status][AppVeyor Develop Build Status Image]][AppVeyor Build Status] | [![Coverage Status][Develop Code Coverage Image]][Develop Code Coverage] |
 
 The Sentry PHP error reporter tracks errors and exceptions that happen during the
 execution of your application and provides instant notification with detailed
@@ -28,7 +30,7 @@ This is our "core" SDK, meaning that all the important code regarding error hand
 If you are happy with using the HTTP client we recommend install the SDK like: [`sentry/sdk`](https://github.com/getsentry/sentry-php-sdk)
 
 ```bash
-php composer.phar require sentry/sdk
+composer require sentry/sdk
 ```
 
 This package (`sentry/sentry`) is not tied to any specific library that sends HTTP messages. Instead,
@@ -38,7 +40,7 @@ PSR-7 implementation and HTTP client they want to use.
 If you just want to get started quickly you should run the following command:
 
 ```bash
-php composer.phar require sentry/sentry php-http/curl-client
+composer require sentry/sentry php-http/curl-client
 ```
 
 This is basically what our metapackage (`sentry/sdk`) provides.
@@ -96,7 +98,7 @@ The following integrations are available and maintained by members of the Sentry
 
 ## Contributing
 
-Dependencies are managed through composer:
+Dependencies are managed through `composer`:
 
 ```
 $ composer install
@@ -107,3 +109,14 @@ Tests can then be run via phpunit:
 ```
 $ vendor/bin/phpunit
 ```
+
+[Travis Build Status]: http://travis-ci.org/getsentry/sentry-php
+[Travis Master Build Status Image]: https://img.shields.io/travis/getsentry/sentry-php/master?logo=travis
+[Travis Develop Build Status Image]: https://img.shields.io/travis/getsentry/sentry-php/develop?logo=travis
+[AppVeyor Build Status]: https://ci.appveyor.com/project/sentry/sentry-php
+[AppVeyor Master Build Status Image]: https://img.shields.io/appveyor/ci/sentry/sentry-php/master?logo=appveyor
+[AppVeyor Develop Build Status Image]: https://img.shields.io/appveyor/ci/sentry/sentry-php/develop?logo=appveyor
+[Master Code Coverage]: https://codecov.io/gh/getsentry/sentry-php/branch/master
+[Master Code Coverage Image]: https://img.shields.io/codecov/c/github/getsentry/sentry-php/master?logo=codecov
+[Develop Code Coverage]: https://codecov.io/gh/getsentry/sentry-php/branch/develop
+[Develop Code Coverage Image]: https://img.shields.io/codecov/c/github/getsentry/sentry-php/develop?logo=codecov

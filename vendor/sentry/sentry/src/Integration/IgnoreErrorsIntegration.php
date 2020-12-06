@@ -29,7 +29,7 @@ final class IgnoreErrorsIntegration implements IntegrationInterface
      * @param array<string, mixed> $options The options
      *
      * @psalm-param array{
-     *     ignore_exceptions?: bool
+     *     ignore_exceptions?: list<class-string<\Throwable>>
      * } $options
      */
     public function __construct(array $options = [])
@@ -49,9 +49,8 @@ final class IgnoreErrorsIntegration implements IntegrationInterface
      */
     public function setupOnce(): void
     {
-        Scope::addGlobalEventProcessor(function (Event $event): ?Event {
-            $currentHub = SentrySdk::getCurrentHub();
-            $integration = $currentHub->getIntegration(self::class);
+        Scope::addGlobalEventProcessor(static function (Event $event): ?Event {
+            $integration = SentrySdk::getCurrentHub()->getIntegration(self::class);
 
             if (null !== $integration && $integration->shouldDropEvent($event, $integration->options)) {
                 return null;
@@ -88,12 +87,12 @@ final class IgnoreErrorsIntegration implements IntegrationInterface
     {
         $exceptions = $event->getExceptions();
 
-        if (empty($exceptions) || !isset($exceptions[0]['type'])) {
+        if (empty($exceptions)) {
             return false;
         }
 
         foreach ($options['ignore_exceptions'] as $ignoredException) {
-            if (is_a($exceptions[0]['type'], $ignoredException, true)) {
+            if (is_a($exceptions[0]->getType(), $ignoredException, true)) {
                 return true;
             }
         }

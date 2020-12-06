@@ -7,7 +7,6 @@ namespace Sentry\HttpClient;
 use GuzzleHttp\RequestOptions as GuzzleHttpClientOptions;
 use Http\Adapter\Guzzle6\Client as GuzzleHttpClient;
 use Http\Client\Common\Plugin\AuthenticationPlugin;
-use Http\Client\Common\Plugin\BaseUriPlugin;
 use Http\Client\Common\Plugin\DecoderPlugin;
 use Http\Client\Common\Plugin\ErrorPlugin;
 use Http\Client\Common\Plugin\HeaderSetPlugin;
@@ -16,12 +15,14 @@ use Http\Client\Common\PluginClient;
 use Http\Client\Curl\Client as CurlHttpClient;
 use Http\Client\HttpAsyncClient as HttpAsyncClientInterface;
 use Http\Discovery\HttpAsyncClientDiscovery;
-use Http\Message\ResponseFactory as ResponseFactoryInterface;
-use Http\Message\StreamFactory as StreamFactoryInterface;
-use Http\Message\UriFactory as UriFactoryInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\UriFactoryInterface;
 use Sentry\HttpClient\Authentication\SentryAuthentication;
 use Sentry\HttpClient\Plugin\GzipEncoderPlugin;
 use Sentry\Options;
+use Symfony\Component\HttpClient\HttpClient as SymfonyHttpClient;
+use Symfony\Component\HttpClient\HttplugClient as SymfonyHttplugClient;
 
 /**
  * Default implementation of the {@HttpClientFactoryInterface} interface that uses
@@ -29,6 +30,17 @@ use Sentry\Options;
  */
 final class HttpClientFactory implements HttpClientFactoryInterface
 {
+    /**
+     * @var int The timeout of the request in seconds
+     */
+    private const DEFAULT_HTTP_TIMEOUT = 5;
+
+    /**
+     * @var int The default number of seconds to wait while trying to connect
+     *          to a server
+     */
+    private const DEFAULT_HTTP_CONNECT_TIMEOUT = 2;
+
     /**
      * @var UriFactoryInterface The PSR-7 URI factory
      */
@@ -40,7 +52,7 @@ final class HttpClientFactory implements HttpClientFactoryInterface
     private $responseFactory;
 
     /**
-     * @var StreamFactoryInterface The PSR-7 stream factory
+     * @var StreamFactoryInterface The PSR-17 stream factory
      */
     private $streamFactory;
 
@@ -100,18 +112,47 @@ final class HttpClientFactory implements HttpClientFactoryInterface
             throw new \RuntimeException('The "http_proxy" option does not work together with a custom HTTP client.');
         }
 
-        if (null === $httpClient && null !== $options->getHttpProxy()) {
-            if (class_exists(GuzzleHttpClient::class)) {
+        if (null === $httpClient) {
+            if (class_exists(SymfonyHttplugClient::class)) {
+                $symfonyConfig = [
+                    'max_duration' => self::DEFAULT_HTTP_TIMEOUT,
+                ];
+
+                if (null !== $options->getHttpProxy()) {
+                    $symfonyConfig['proxy'] = $options->getHttpProxy();
+                }
+
+                /** @psalm-suppress UndefinedClass */
+                $httpClient = new SymfonyHttplugClient(
+                    SymfonyHttpClient::create($symfonyConfig)
+                );
+            } elseif (class_exists(GuzzleHttpClient::class)) {
+                /** @psalm-suppress UndefinedClass */
+                $guzzleConfig = [
+                    GuzzleHttpClientOptions::TIMEOUT => self::DEFAULT_HTTP_TIMEOUT,
+                    GuzzleHttpClientOptions::CONNECT_TIMEOUT => self::DEFAULT_HTTP_CONNECT_TIMEOUT,
+                ];
+
+                if (null !== $options->getHttpProxy()) {
+                    /** @psalm-suppress UndefinedClass */
+                    $guzzleConfig[GuzzleHttpClientOptions::PROXY] = $options->getHttpProxy();
+                }
+
                 /** @psalm-suppress InvalidPropertyAssignmentValue */
-                $this->httpClient = GuzzleHttpClient::createWithConfig([
-                    GuzzleHttpClientOptions::PROXY => $options->getHttpProxy(),
-                ]);
+                $httpClient = GuzzleHttpClient::createWithConfig($guzzleConfig);
             } elseif (class_exists(CurlHttpClient::class)) {
+                $curlConfig = [
+                    CURLOPT_TIMEOUT => self::DEFAULT_HTTP_TIMEOUT,
+                    CURLOPT_CONNECTTIMEOUT => self::DEFAULT_HTTP_CONNECT_TIMEOUT,
+                ];
+
+                if (null !== $options->getHttpProxy()) {
+                    $curlConfig[CURLOPT_PROXY] = $options->getHttpProxy();
+                }
+
                 /** @psalm-suppress InvalidPropertyAssignmentValue */
-                $this->httpClient = new CurlHttpClient($this->responseFactory, $this->streamFactory, [
-                    CURLOPT_PROXY => $options->getHttpProxy(),
-                ]);
-            } else {
+                $httpClient = new CurlHttpClient(null, null, $curlConfig);
+            } elseif (null !== $options->getHttpProxy()) {
                 throw new \RuntimeException('The "http_proxy" option requires either the "php-http/curl-client" or the "php-http/guzzle6-adapter" package to be installed.');
             }
         }
@@ -121,7 +162,6 @@ final class HttpClientFactory implements HttpClientFactoryInterface
         }
 
         $httpClientPlugins = [
-            new BaseUriPlugin($this->uriFactory->createUri($options->getDsn())),
             new HeaderSetPlugin(['User-Agent' => $this->sdkIdentifier . '/' . $this->sdkVersion]),
             new AuthenticationPlugin(new SentryAuthentication($options, $this->sdkIdentifier, $this->sdkVersion)),
             new RetryPlugin(['retries' => $options->getSendAttempts()]),

@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Sentry\Transport;
 
-use Http\Message\MessageFactory as MessageFactoryInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
 use Sentry\HttpClient\HttpClientFactoryInterface;
 use Sentry\Options;
+use Sentry\Serializer\PayloadSerializer;
 
 /**
  * This class is the default implementation of the {@see TransportFactoryInterface}
@@ -15,25 +18,39 @@ use Sentry\Options;
 final class DefaultTransportFactory implements TransportFactoryInterface
 {
     /**
-     * @var MessageFactoryInterface The PSR-7 message factory
+     * @var StreamFactoryInterface A PSR-7 stream factory
      */
-    private $messageFactory;
+    private $streamFactory;
 
     /**
-     * @var HttpClientFactoryInterface The factory to create the HTTP client
+     * @var RequestFactoryInterface A PSR-7 request factory
+     */
+    private $requestFactory;
+
+    /**
+     * @var HttpClientFactoryInterface A factory to create the HTTP client
      */
     private $httpClientFactory;
 
     /**
+     * @var LoggerInterface|null A PSR-3 logger
+     */
+    private $logger;
+
+    /**
      * Constructor.
      *
-     * @param MessageFactoryInterface    $messageFactory    The PSR-7 message factory
+     * @param StreamFactoryInterface     $streamFactory     The PSR-7 stream factory
+     * @param RequestFactoryInterface    $requestFactory    The PSR-7 request factory
      * @param HttpClientFactoryInterface $httpClientFactory The HTTP client factory
+     * @param LoggerInterface|null       $logger            An optional PSR-3 logger
      */
-    public function __construct(MessageFactoryInterface $messageFactory, HttpClientFactoryInterface $httpClientFactory)
+    public function __construct(StreamFactoryInterface $streamFactory, RequestFactoryInterface $requestFactory, HttpClientFactoryInterface $httpClientFactory, ?LoggerInterface $logger = null)
     {
-        $this->messageFactory = $messageFactory;
+        $this->streamFactory = $streamFactory;
+        $this->requestFactory = $requestFactory;
         $this->httpClientFactory = $httpClientFactory;
+        $this->logger = $logger;
     }
 
     /**
@@ -48,9 +65,10 @@ final class DefaultTransportFactory implements TransportFactoryInterface
         return new HttpTransport(
             $options,
             $this->httpClientFactory->create($options),
-            $this->messageFactory,
-            true,
-            false
+            $this->streamFactory,
+            $this->requestFactory,
+            new PayloadSerializer(),
+            $this->logger
         );
     }
 }

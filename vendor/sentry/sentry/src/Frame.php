@@ -9,17 +9,32 @@ namespace Sentry;
  *
  * @author Stefano Arlandini <sarlandini@alice.it>
  */
-final class Frame implements \JsonSerializable
+final class Frame
 {
+    public const INTERNAL_FRAME_FILENAME = '[internal]';
+
+    public const ANONYMOUS_CLASS_PREFIX = "class@anonymous\x00";
+
     /**
      * @var string|null The name of the function being called
      */
     private $functionName;
 
     /**
+     * @var string|null The original function name, if the function name is
+     *                  shortened or demangled
+     */
+    private $rawFunctionName;
+
+    /**
      * @var string The file where the frame originated
      */
     private $file;
+
+    /**
+     * @var string|null The absolute path to the source file
+     */
+    private $absoluteFilePath;
 
     /**
      * @var int The line at which the frame originated
@@ -48,26 +63,38 @@ final class Frame implements \JsonSerializable
      * @var bool Flag telling whether the frame is related to the execution of
      *           the relevant code in this stacktrace
      */
-    private $inApp = true;
+    private $inApp;
 
     /**
-     * @var array A mapping of variables which were available within this
-     *            frame (usually context-locals)
+     * @var array<string, mixed> A mapping of variables which were available within
+     *                    this frame (usually context-locals)
      */
     private $vars = [];
 
     /**
      * Initializes a new instance of this class using the provided information.
      *
-     * @param string|null $functionName The name of the function being called
-     * @param string      $file         The file where the frame originated
-     * @param int         $line         The line at which the frame originated
+     * @param string|null          $functionName     The name of the function being called
+     * @param string               $file             The file where the frame originated
+     * @param string|null          $rawFunctionName  The original function name, if the function
+     *                                               name is shortened or demangled
+     * @param string|null          $absoluteFilePath The absolute path to the source file
+     * @param int                  $line             The line at which the frame originated
+     * @param array<string, mixed> $vars             A mapping of variables which were available
+     *                                               within the frame
+     * @param bool                 $inApp            Whether the frame is related to the
+     *                                               execution of code relevant to the
+     *                                               application
      */
-    public function __construct(?string $functionName, string $file, int $line)
+    public function __construct(?string $functionName, string $file, int $line, ?string $rawFunctionName = null, ?string $absoluteFilePath = null, array $vars = [], bool $inApp = true)
     {
         $this->functionName = $functionName;
         $this->file = $file;
         $this->line = $line;
+        $this->rawFunctionName = $rawFunctionName;
+        $this->absoluteFilePath = $absoluteFilePath;
+        $this->vars = $vars;
+        $this->inApp = $inApp;
     }
 
     /**
@@ -79,11 +106,28 @@ final class Frame implements \JsonSerializable
     }
 
     /**
+     * Gets the original function name, if the function name is shortened or
+     * demangled.
+     */
+    public function getRawFunctionName(): ?string
+    {
+        return $this->rawFunctionName;
+    }
+
+    /**
      * Gets the file where the frame originated.
      */
     public function getFile(): string
     {
         return $this->file;
+    }
+
+    /**
+     * Gets the absolute path to the source file.
+     */
+    public function getAbsoluteFilePath(): ?string
+    {
+        return $this->absoluteFilePath;
     }
 
     /**
@@ -177,6 +221,8 @@ final class Frame implements \JsonSerializable
     /**
      * Gets a mapping of variables which were available within this frame
      * (usually context-locals).
+     *
+     * @return array<string, mixed>
      */
     public function getVars(): array
     {
@@ -187,7 +233,7 @@ final class Frame implements \JsonSerializable
      * Sets a mapping of variables which were available within this frame
      * (usually context-locals).
      *
-     * @param array $vars The variables
+     * @param array<string, mixed> $vars The variables
      */
     public function setVars(array $vars): void
     {
@@ -195,42 +241,10 @@ final class Frame implements \JsonSerializable
     }
 
     /**
-     * Returns an array representation of the data of this frame modeled according
-     * to the specifications of the Sentry SDK Stacktrace Interface.
+     * Gets whether the frame is internal.
      */
-    public function toArray(): array
+    public function isInternal(): bool
     {
-        $result = [
-            'function' => $this->functionName,
-            'filename' => $this->file,
-            'lineno' => $this->line,
-            'in_app' => $this->inApp,
-        ];
-
-        if (0 !== \count($this->preContext)) {
-            $result['pre_context'] = $this->preContext;
-        }
-
-        if (null !== $this->contextLine) {
-            $result['context_line'] = $this->contextLine;
-        }
-
-        if (0 !== \count($this->postContext)) {
-            $result['post_context'] = $this->postContext;
-        }
-
-        if (!empty($this->vars)) {
-            $result['vars'] = $this->vars;
-        }
-
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
+        return self::INTERNAL_FRAME_FILENAME === $this->file;
     }
 }

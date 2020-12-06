@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Sentry\Transport;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Sentry\Event;
-use Sentry\Exception\MissingProjectIdCredentialException;
 
 /**
  * This interface must be implemented by all classes willing to provide a way
@@ -20,9 +20,15 @@ interface TransportInterface
      *
      * @param Event $event The event
      *
-     * @return string|null Returns the ID of the event or `null` if it failed to be sent
-     *
-     * @throws MissingProjectIdCredentialException If the project ID is missing in the DSN
+     * @return PromiseInterface Returns the ID of the event or `null` if it failed to be sent
      */
-    public function send(Event $event): ?string;
+    public function send(Event $event): PromiseInterface;
+
+    /**
+     * Waits until all pending requests have been sent or the timeout expires.
+     *
+     * @param int|null $timeout Maximum time in seconds before the sending
+     *                          operation is interrupted
+     */
+    public function close(?int $timeout = null): PromiseInterface;
 }

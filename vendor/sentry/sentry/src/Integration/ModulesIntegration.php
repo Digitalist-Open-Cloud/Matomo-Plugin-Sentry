@@ -17,22 +17,22 @@ use Sentry\State\Scope;
 final class ModulesIntegration implements IntegrationInterface
 {
     /**
-     * @var array The list of installed vendors
+     * @var array<string, string> The list of installed vendors
      */
-    private static $loadedModules = [];
+    private static $packages = [];
 
     /**
      * {@inheritdoc}
      */
     public function setupOnce(): void
     {
-        Scope::addGlobalEventProcessor(function (Event $event) {
+        Scope::addGlobalEventProcessor(static function (Event $event): Event {
             $integration = SentrySdk::getCurrentHub()->getIntegration(self::class);
 
             // The integration could be bound to a client that is not the one
             // attached to the current hub. If this is the case, bail out
-            if ($integration instanceof self) {
-                self::applyToEvent($integration, $event);
+            if (null !== $integration) {
+                $event->setModules(self::getComposerPackages());
             }
 
             return $event;
@@ -40,19 +40,16 @@ final class ModulesIntegration implements IntegrationInterface
     }
 
     /**
-     * Applies the information gathered by this integration to the event.
-     *
-     * @param self  $self  The instance of this integration
-     * @param Event $event The event that will be enriched with the modules
+     * @return array<string, string>
      */
-    public static function applyToEvent(self $self, Event $event): void
+    private static function getComposerPackages(): array
     {
-        if (empty(self::$loadedModules)) {
+        if (empty(self::$packages)) {
             foreach (Versions::VERSIONS as $package => $rawVersion) {
-                self::$loadedModules[$package] = PrettyVersions::getVersion($package)->getPrettyVersion();
+                self::$packages[$package] = PrettyVersions::getVersion($package)->getPrettyVersion();
             }
         }
 
-        $event->setModules(self::$loadedModules);
+        return self::$packages;
     }
 }

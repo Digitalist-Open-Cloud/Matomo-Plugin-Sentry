@@ -5,11 +5,7 @@ declare(strict_types=1);
 namespace Sentry;
 
 use Sentry\Integration\ErrorListenerIntegration;
-use Sentry\Integration\ExceptionListenerIntegration;
-use Sentry\Integration\FatalErrorListenerIntegration;
 use Sentry\Integration\IntegrationInterface;
-use Sentry\Integration\RequestIntegration;
-use Sentry\Integration\TransactionIntegration;
 use Symfony\Component\OptionsResolver\Options as SymfonyOptions;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -21,7 +17,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 final class Options
 {
     /**
-     * The default maximum number of breadcrumbs that will be sent with an event.
+     * The default maximum number of breadcrumbs that will be sent with an
+     * event.
      */
     public const DEFAULT_MAX_BREADCRUMBS = 100;
 
@@ -31,39 +28,14 @@ final class Options
     private $options = [];
 
     /**
-     * @var string|null A simple server string, set to the DSN found on your Sentry settings
-     */
-    private $dsn;
-
-    /**
-     * @var string|null The project ID number to send to the Sentry server
-     */
-    private $projectId;
-
-    /**
-     * @var string|null The public key to authenticate the SDK
-     */
-    private $publicKey;
-
-    /**
-     * @var string|null The secret key to authenticate the SDK
-     */
-    private $secretKey;
-
-    /**
      * @var OptionsResolver The options resolver
      */
     private $resolver;
 
     /**
-     * @var IntegrationInterface[]|null The list of default integrations
-     */
-    private $defaultIntegrations;
-
-    /**
      * Class constructor.
      *
-     * @param array $options The configuration options
+     * @param array<string, mixed> $options The configuration options
      */
     public function __construct(array $options = [])
     {
@@ -109,7 +81,7 @@ final class Options
      * Sets the prefixes which should be stripped from filenames to create
      * relative paths.
      *
-     * @param array $prefixes The prefixes
+     * @param string[] $prefixes The prefixes
      */
     public function setPrefixes(array $prefixes): void
     {
@@ -141,6 +113,38 @@ final class Options
     }
 
     /**
+     * Gets the sampling factor to apply to transaction. A value of 0 will deny
+     * sending any transaction, and a value of 1 will send 100% of transaction.
+     */
+    public function getTracesSampleRate(): float
+    {
+        return $this->options['traces_sample_rate'];
+    }
+
+    /**
+     * Sets the sampling factor to apply to transactions. A value of 0 will deny
+     * sending any transactions, and a value of 1 will send 100% of transactions.
+     *
+     * @param float $sampleRate The sampling factor
+     */
+    public function setTracesSampleRate(float $sampleRate): void
+    {
+        $options = array_merge($this->options, ['traces_sample_rate' => $sampleRate]);
+
+        $this->options = $this->resolver->resolve($options);
+    }
+
+    /**
+     * Gets whether tracing is enabled or not. The feature is enabled when at
+     * least one of the `traces_sample_rate` and `traces_sampler` options is
+     * set.
+     */
+    public function isTracingEnabled(): bool
+    {
+        return 0 != $this->options['traces_sample_rate'] || null !== $this->options['traces_sampler'];
+    }
+
+    /**
      * Gets whether the stacktrace will be attached on captureMessage.
      */
     public function shouldAttachStacktrace(): bool
@@ -163,7 +167,7 @@ final class Options
     /**
      * Gets the number of lines of code context to capture, or null if none.
      */
-    public function getContextLines(): int
+    public function getContextLines(): ?int
     {
         return $this->options['context_lines'];
     }
@@ -171,9 +175,9 @@ final class Options
     /**
      * Sets the number of lines of code context to capture, or null if none.
      *
-     * @param int $contextLines The number of lines of code
+     * @param int|null $contextLines The number of lines of code
      */
-    public function setContextLines(int $contextLines): void
+    public function setContextLines(?int $contextLines): void
     {
         $options = array_merge($this->options, ['context_lines' => $contextLines]);
 
@@ -211,71 +215,13 @@ final class Options
     /**
      * Sets the environment.
      *
-     * @param string $environment The environment
+     * @param string|null $environment The environment
      */
-    public function setEnvironment(string $environment): void
+    public function setEnvironment(?string $environment): void
     {
         $options = array_merge($this->options, ['environment' => $environment]);
 
         $this->options = $this->resolver->resolve($options);
-    }
-
-    /**
-     * Gets the list of exception classes that should be ignored when sending
-     * events to Sentry.
-     *
-     * @return string[]
-     *
-     * @deprecated since version 2.3, to be removed in 3.0
-     */
-    public function getExcludedExceptions(): array
-    {
-        @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "IgnoreErrorsIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
-
-        return $this->options['excluded_exceptions'];
-    }
-
-    /**
-     * Sets the list of exception classes that should be ignored when sending
-     * events to Sentry.
-     *
-     * @param string[] $exceptions The list of exception classes
-     *
-     * @deprecated since version 2.3, to be removed in 3.0
-     */
-    public function setExcludedExceptions(array $exceptions): void
-    {
-        @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "IgnoreErrorsIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
-
-        $options = array_merge($this->options, ['excluded_exceptions' => $exceptions]);
-
-        $this->options = $this->resolver->resolve($options);
-    }
-
-    /**
-     * Checks whether the given exception should be ignored when sending events
-     * to Sentry.
-     *
-     * @param \Throwable $exception        The exception
-     * @param bool       $throwDeprecation Flag indicating whether to throw a
-     *                                     deprecation for the usage of this
-     *                                     method
-     *
-     * @deprecated since version 2.3, to be removed in 3.0
-     */
-    public function isExcludedException(\Throwable $exception, bool $throwDeprecation = true): bool
-    {
-        if ($throwDeprecation) {
-            @trigger_error(sprintf('Method %s() is deprecated since version 2.3 and will be removed in 3.0. Use the "IgnoreErrorsIntegration" integration instead.', __METHOD__), E_USER_DEPRECATED);
-        }
-
-        foreach ($this->options['excluded_exceptions'] as $exceptionClass) {
-            if ($exception instanceof $exceptionClass) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -291,7 +237,7 @@ final class Options
     /**
      * Sets the list of paths to exclude from in_app detection.
      *
-     * @param array $paths The list of paths
+     * @param string[] $paths The list of paths
      */
     public function setInAppExcludedPaths(array $paths): void
     {
@@ -320,50 +266,6 @@ final class Options
         $options = array_merge($this->options, ['in_app_include' => $paths]);
 
         $this->options = $this->resolver->resolve($options);
-    }
-
-    /**
-     * Gets the project ID number to send to the Sentry server.
-     */
-    public function getProjectId(): ?string
-    {
-        return $this->projectId;
-    }
-
-    /**
-     * Gets the project which the authenticated user is bound to.
-     */
-    public function getProjectRoot(): ?string
-    {
-        return $this->options['project_root'];
-    }
-
-    /**
-     * Sets the project which the authenticated user is bound to.
-     *
-     * @param string|null $path The path to the project root
-     */
-    public function setProjectRoot(?string $path): void
-    {
-        $options = array_merge($this->options, ['project_root' => $path]);
-
-        $this->options = $this->resolver->resolve($options);
-    }
-
-    /**
-     * Gets the public key to authenticate the SDK.
-     */
-    public function getPublicKey(): ?string
-    {
-        return $this->publicKey;
-    }
-
-    /**
-     * Gets the secret key to authenticate the SDK.
-     */
-    public function getSecretKey(): ?string
-    {
-        return $this->secretKey;
     }
 
     /**
@@ -411,9 +313,9 @@ final class Options
     /**
      * Gets the DSN of the Sentry server the authenticated user is bound to.
      */
-    public function getDsn(): ?string
+    public function getDsn(): ?Dsn
     {
-        return $this->dsn;
+        return $this->options['dsn'];
     }
 
     /**
@@ -557,7 +459,7 @@ final class Options
      * initialized or a function that receives default integrations and returns
      * a new, updated list.
      *
-     * @param IntegrationInterface[]|callable $integrations The list or callable
+     * @param IntegrationInterface[]|callable(IntegrationInterface[]): IntegrationInterface[] $integrations The list or callable
      */
     public function setIntegrations($integrations): void
     {
@@ -569,27 +471,11 @@ final class Options
     /**
      * Returns all configured integrations that will be used by the Client.
      *
-     * @return IntegrationInterface[]
+     * @return IntegrationInterface[]|callable(IntegrationInterface[]): IntegrationInterface[]
      */
-    public function getIntegrations(): array
+    public function getIntegrations()
     {
-        $defaultIntegrations = $this->getDefaultIntegrations();
-        $userIntegrations = $this->options['integrations'];
-        $integrations = [];
-
-        if (\is_callable($userIntegrations)) {
-            return $userIntegrations($defaultIntegrations);
-        }
-
-        foreach ($defaultIntegrations as $defaultIntegration) {
-            $integrations[\get_class($defaultIntegration)] = $defaultIntegration;
-        }
-
-        foreach ($userIntegrations as $userIntegration) {
-            $integrations[\get_class($userIntegration)] = $userIntegration;
-        }
-
-        return array_values($integrations);
+        return $this->options['integrations'];
     }
 
     /**
@@ -713,7 +599,7 @@ final class Options
      *                                   captured. It can be set to one of the
      *                                   following values:
      *
-     *                                    - never: request bodies are never sent
+     *                                    - none: request bodies are never sent
      *                                    - small: only small request bodies will
      *                                      be captured where the cutoff for small
      *                                      depends on the SDK (typically 4KB)
@@ -756,6 +642,31 @@ final class Options
     }
 
     /**
+     * Gets a callback that will be invoked when we sample a Transaction.
+     *
+     * @psalm-return ?callable(\Sentry\Tracing\SamplingContext): float
+     */
+    public function getTracesSampler(): ?callable
+    {
+        return $this->options['traces_sampler'];
+    }
+
+    /**
+     * Sets a callback that will be invoked when we take the sampling decision for Transactions.
+     * Return a number between 0 and 1 to define the sample rate for the provided SamplingContext.
+     *
+     * @param ?callable $sampler The sampler
+     *
+     * @psalm-param ?callable(\Sentry\Tracing\SamplingContext): float $sampler
+     */
+    public function setTracesSampler(?callable $sampler): void
+    {
+        $options = array_merge($this->options, ['traces_sampler' => $sampler]);
+
+        $this->options = $this->resolver->resolve($options);
+    }
+
+    /**
      * Configures the options of the client.
      *
      * @param OptionsResolver $resolver The resolver for the options
@@ -771,11 +682,12 @@ final class Options
             'send_attempts' => 3,
             'prefixes' => explode(PATH_SEPARATOR, get_include_path()),
             'sample_rate' => 1,
+            'traces_sample_rate' => 0,
+            'traces_sampler' => null,
             'attach_stacktrace' => false,
             'context_lines' => 5,
             'enable_compression' => true,
             'environment' => $_SERVER['SENTRY_ENVIRONMENT'] ?? null,
-            'project_root' => null,
             'logger' => 'php',
             'release' => $_SERVER['SENTRY_RELEASE'] ?? null,
             'dsn' => $_SERVER['SENTRY_DSN'] ?? null,
@@ -784,12 +696,11 @@ final class Options
                 return $event;
             },
             'tags' => [],
-            'error_types' => E_ALL,
+            'error_types' => error_reporting(),
             'max_breadcrumbs' => self::DEFAULT_MAX_BREADCRUMBS,
             'before_breadcrumb' => static function (Breadcrumb $breadcrumb): Breadcrumb {
                 return $breadcrumb;
             },
-            'excluded_exceptions' => [],
             'in_app_exclude' => [],
             'in_app_include' => [],
             'send_default_pii' => false,
@@ -801,26 +712,26 @@ final class Options
         ]);
 
         $resolver->setAllowedTypes('send_attempts', 'int');
-        $resolver->setAllowedTypes('prefixes', 'array');
+        $resolver->setAllowedTypes('prefixes', 'string[]');
         $resolver->setAllowedTypes('sample_rate', ['int', 'float']);
+        $resolver->setAllowedTypes('traces_sample_rate', ['int', 'float']);
+        $resolver->setAllowedTypes('traces_sampler', ['null', 'callable']);
         $resolver->setAllowedTypes('attach_stacktrace', 'bool');
-        $resolver->setAllowedTypes('context_lines', 'int');
+        $resolver->setAllowedTypes('context_lines', ['null', 'int']);
         $resolver->setAllowedTypes('enable_compression', 'bool');
         $resolver->setAllowedTypes('environment', ['null', 'string']);
-        $resolver->setAllowedTypes('excluded_exceptions', 'array');
-        $resolver->setAllowedTypes('in_app_exclude', 'array');
-        $resolver->setAllowedTypes('in_app_include', 'array');
-        $resolver->setAllowedTypes('project_root', ['null', 'string']);
+        $resolver->setAllowedTypes('in_app_exclude', 'string[]');
+        $resolver->setAllowedTypes('in_app_include', 'string[]');
         $resolver->setAllowedTypes('logger', 'string');
         $resolver->setAllowedTypes('release', ['null', 'string']);
-        $resolver->setAllowedTypes('dsn', ['null', 'string', 'bool']);
+        $resolver->setAllowedTypes('dsn', ['null', 'string', 'bool', Dsn::class]);
         $resolver->setAllowedTypes('server_name', 'string');
         $resolver->setAllowedTypes('before_send', ['callable']);
-        $resolver->setAllowedTypes('tags', 'array');
+        $resolver->setAllowedTypes('tags', 'string[]');
         $resolver->setAllowedTypes('error_types', ['int']);
         $resolver->setAllowedTypes('max_breadcrumbs', 'int');
         $resolver->setAllowedTypes('before_breadcrumb', ['callable']);
-        $resolver->setAllowedTypes('integrations', ['array', 'callable']);
+        $resolver->setAllowedTypes('integrations', ['Sentry\\Integration\\IntegrationInterface[]', 'callable']);
         $resolver->setAllowedTypes('send_default_pii', 'bool');
         $resolver->setAllowedTypes('default_integrations', 'bool');
         $resolver->setAllowedTypes('max_value_length', 'int');
@@ -831,21 +742,11 @@ final class Options
 
         $resolver->setAllowedValues('max_request_body_size', ['none', 'small', 'medium', 'always']);
         $resolver->setAllowedValues('dsn', \Closure::fromCallable([$this, 'validateDsnOption']));
-        $resolver->setAllowedValues('integrations', \Closure::fromCallable([$this, 'validateIntegrationsOption']));
         $resolver->setAllowedValues('max_breadcrumbs', \Closure::fromCallable([$this, 'validateMaxBreadcrumbsOptions']));
         $resolver->setAllowedValues('class_serializers', \Closure::fromCallable([$this, 'validateClassSerializersOption']));
-        $resolver->setAllowedValues('tags', \Closure::fromCallable([$this, 'validateTagsOption']));
+        $resolver->setAllowedValues('context_lines', \Closure::fromCallable([$this, 'validateContextLinesOption']));
 
         $resolver->setNormalizer('dsn', \Closure::fromCallable([$this, 'normalizeDsnOption']));
-        $resolver->setNormalizer('project_root', function (SymfonyOptions $options, ?string $value) {
-            if (null === $value) {
-                return null;
-            }
-
-            @trigger_error('The option "project_root" is deprecated. Please use the "in_app_include" option instead.', E_USER_DEPRECATED);
-
-            return $this->normalizeAbsolutePath($value);
-        });
 
         $resolver->setNormalizer('prefixes', function (SymfonyOptions $options, array $value) {
             return array_map([$this, 'normalizeAbsolutePath'], $value);
@@ -880,16 +781,20 @@ final class Options
      * Normalizes the DSN option by parsing the host, public and secret keys and
      * an optional path.
      *
-     * @param SymfonyOptions$options The configuration options
-     * @param string|null $dsn The actual value of the option to normalize
+     * @param SymfonyOptions       $options The configuration options
+     * @param string|bool|Dsn|null $value   The actual value of the option to normalize
      */
-    private function normalizeDsnOption(SymfonyOptions $options, ?string $dsn): ?string
+    private function normalizeDsnOption(SymfonyOptions $options, $value): ?Dsn
     {
-        if (empty($dsn)) {
+        if (null === $value || \is_bool($value)) {
             return null;
         }
 
-        switch (strtolower($dsn)) {
+        if ($value instanceof Dsn) {
+            return $value;
+        }
+
+        switch (strtolower($value)) {
             case '':
             case 'false':
             case '(false)':
@@ -900,46 +805,23 @@ final class Options
                 return null;
         }
 
-        $parsed = @parse_url($dsn);
-
-        if (false === $parsed || !isset($parsed['scheme'], $parsed['host'], $parsed['path'], $parsed['user'])) {
-            return null;
-        }
-
-        $this->dsn = $parsed['scheme'] . '://' . $parsed['host'];
-
-        if (isset($parsed['port']) && ((80 !== $parsed['port'] && 'http' === $parsed['scheme']) || (443 !== $parsed['port'] && 'https' === $parsed['scheme']))) {
-            $this->dsn .= ':' . $parsed['port'];
-        }
-
-        $lastSlashPosition = strrpos($parsed['path'], '/');
-
-        if (false !== $lastSlashPosition) {
-            $this->dsn .= substr($parsed['path'], 0, $lastSlashPosition);
-        } else {
-            $this->dsn .= $parsed['path'];
-        }
-
-        $this->publicKey = $parsed['user'];
-        $this->secretKey = $parsed['pass'] ?? null;
-
-        $parts = explode('/', $parsed['path']);
-
-        $this->projectId = array_pop($parts);
-
-        return $dsn;
+        return Dsn::createFromString($value);
     }
 
     /**
      * Validates the DSN option ensuring that all required pieces are set and
      * that the URL is valid.
      *
-     * @param string|null $dsn The value of the option
+     * @param string|bool|Dsn|null $dsn The value of the option
      */
-    private function validateDsnOption(?string $dsn): bool
+    private function validateDsnOption($dsn): bool
     {
-        if (null === $dsn) {
+        if (null === $dsn || $dsn instanceof Dsn) {
             return true;
+        }
+
+        if (\is_bool($dsn)) {
+            return false === $dsn;
         }
 
         switch (strtolower($dsn)) {
@@ -953,46 +835,13 @@ final class Options
                 return true;
         }
 
-        $parsed = @parse_url($dsn);
+        try {
+            Dsn::createFromString($dsn);
 
-        if (false === $parsed) {
-            return false;
-        }
-
-        if (!isset($parsed['scheme'], $parsed['user'], $parsed['host'], $parsed['path'])) {
-            return false;
-        }
-
-        if (empty($parsed['user']) || (isset($parsed['pass']) && empty($parsed['pass']))) {
-            return false;
-        }
-
-        if (!\in_array(strtolower($parsed['scheme']), ['http', 'https'])) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Validates that the elements of this option are all class instances that
-     * implements the {@see IntegrationInterface} interface.
-     *
-     * @param array|callable $integrations The value to validate
-     */
-    private function validateIntegrationsOption($integrations): bool
-    {
-        if (\is_callable($integrations)) {
             return true;
+        } catch (\InvalidArgumentException $exception) {
+            return false;
         }
-
-        foreach ($integrations as $integration) {
-            if (!$integration instanceof IntegrationInterface) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**
@@ -1008,7 +857,7 @@ final class Options
     /**
      * Validates that the values passed to the `class_serializers` option are valid.
      *
-     * @param array $serializers The value to validate
+     * @param mixed[] $serializers The value to validate
      */
     private function validateClassSerializersOption(array $serializers): bool
     {
@@ -1022,42 +871,12 @@ final class Options
     }
 
     /**
-     * Validates that the values passed to the `tags` option are valid.
+     * Validates that the value passed to the "context_lines" option is valid.
      *
-     * @param array $tags The value to validate
+     * @param int|null $contextLines The value to validate
      */
-    private function validateTagsOption(array $tags): bool
+    private function validateContextLinesOption(?int $contextLines): bool
     {
-        foreach ($tags as $tagName => $tagValue) {
-            if (!\is_string($tagValue)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Gets the list of default integrations.
-     *
-     * @return IntegrationInterface[]
-     */
-    private function getDefaultIntegrations(): array
-    {
-        if (!$this->options['default_integrations']) {
-            return [];
-        }
-
-        if (null === $this->defaultIntegrations) {
-            $this->defaultIntegrations = [
-                new ExceptionListenerIntegration(),
-                new ErrorListenerIntegration(null, false),
-                new FatalErrorListenerIntegration(),
-                new RequestIntegration(),
-                new TransactionIntegration(),
-            ];
-        }
-
-        return $this->defaultIntegrations;
+        return null === $contextLines || $contextLines >= 0;
     }
 }
