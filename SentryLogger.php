@@ -27,7 +27,7 @@ class SentryLogger extends \Piwik\Plugin
 
         if ($dsn) {
             // Add composer dependencies
-            require_once PIWIK_INCLUDE_PATH . '/plugins/SentryLogger/vendor/autoload.php';
+            require_once __DIR__ . '/vendor/autoload.php';
 
             \Sentry\init([
                 'dsn' => $dsn,
