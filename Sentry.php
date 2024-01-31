@@ -28,7 +28,7 @@ class Sentry extends \Piwik\Plugin
             $host = Url::getHostSanitized($host);
             $host = Common::sanitizeInputValue($host);
             if (strlen($host) == 0) {
-              $host = 'localhost';
+                $host = 'localhost';
             }
             $matomoHost = Url::getHostSanitized($host);
         }
@@ -81,7 +81,7 @@ class Sentry extends \Piwik\Plugin
     }
 
     /**
-     * @return Array
+     * @return void
      */
     public function getJSFiles(&$file)
     {

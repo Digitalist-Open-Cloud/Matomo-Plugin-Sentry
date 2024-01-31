@@ -8,7 +8,7 @@ Log errors from Matomo to a [Sentry](https://sentry.io/) instance, or Sentry com
 
 * Clone github repo into plugins/Sentry.
 * Go into plugins/Sentry.
-* Run composer install --no-dev for productions use (skip --no-dev for development).
+* Run composer install --no-dev for productions use.
 * Install Sentry plugin in Matomo.
 * Go to settings page for adding the adding the Sentry Data Source Name (DSN).
 * Save settings.
@@ -32,6 +32,10 @@ For Javascript error tracking. Without it, no JavaScript errors will be tracked.
 ## Local testing
 
 For local testing see [test documentation](TESTS.md).
+
+## Update Sentry PHP SDK
+
+Sentry PHP SDK is added in composer, and should be installed and updated by composer.
 
 ## Update Sentry js
 
