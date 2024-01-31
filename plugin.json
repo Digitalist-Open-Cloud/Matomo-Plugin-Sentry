@@ -1,27 +1,28 @@
 {
-    "name": "Sentry",
-    "description": "Log Matomo errors to Sentry",
-    "version": "5.0.3",
-    "theme": false,
-    "require": {
-        "matomo": ">=5.0.1-stable,<6.0.0-b1",
-        "php": ">=7.4.0"
+  "name": "Sentry",
+  "description": "Log Matomo errors to Sentry",
+  "version": "5.0.3",
+  "theme": false,
+  "require": {
+    "matomo": ">=5.0.1-stable,<6.0.0-b1",
+    "php": ">=7.4.0"
+  },
+  "homepage": "https://www.digitalist.se/",
+  "authors": [
+    {
+      "name": "Lukas Winkler",
+      "email": "lukas@matomo.org",
+      "homepage": "https://lw1.at"
     },
-    "authors": [
-        {
-          "name": "Lukas Winkler",
-          "email": "lukas@matomo.org",
-          "homepage": "https://lw1.at"
-        },
-        {
-            "name": "Mikke Schirén",
-            "email": "mikke.schiren@digitalist.com",
-            "homepage": "https://www.digitalist.se/"
-        }
-      ],
-    "license": "GPL v3+",
-    "keywords": [
-        "sentry",
-        "error"
-    ]
+    {
+      "name": "Mikke Schirén",
+      "email": "mikke.schiren@digitalist.com",
+      "homepage": "https://www.digitalist.se/"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/digitalist-se/MatomoPlugin-Sentry/issues"
+  },
+  "license": "GPL v3+",
+  "keywords": ["sentry", "error"]
 }
