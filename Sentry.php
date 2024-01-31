@@ -85,28 +85,33 @@ class Sentry extends \Piwik\Plugin
      */
     public function getJSFiles(&$file)
     {
-        $file[] = 'plugins/Sentry/libs/bundle.min.js';
-        $file[] = 'plugins/Sentry/javascripts/init.js';
+        if (Piwik::isUserHasSomeViewAccess()) {
+            $file[] = 'plugins/Sentry/libs/bundle.min.js';
+            $file[] = 'plugins/Sentry/javascripts/init.js';
+        }
+
     }
 
     public function addJsVariables(&$out)
     {
-        $settings = new SystemSettings();
-        $dsnEnvironment = $settings->DSNEnvironment->getValue();
-        $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
-        if ($autoSessionTracking == 1) {
-            $autoSessionTracking = true;
-        } else {
-            $autoSessionTracking = false;
-        }
-        $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
-        $version = Version::VERSION;
-        $dsn = $settings->browserDSN->getValue();
-        $hostname = $this->hostname;
-        $out .= "piwik.sentryDSN = '$dsn';\n";
-        $out .= "piwik.matomoRelease = '$version';\n";
-        $out .= "piwik.sentryEnv = '$dsnEnvironment';\n";
-        $out .= "piwik.autoSessionTracking = '$autoSessionTracking';\n";
-        $out .= "piwik.hostname = '$hostname';\n";
+        if (Piwik::isUserHasSomeViewAccess()) {
+            $settings = new SystemSettings();
+            $dsnEnvironment = $settings->DSNEnvironment->getValue();
+            $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
+            if ($autoSessionTracking == 1) {
+                $autoSessionTracking = true;
+            } else {
+                $autoSessionTracking = false;
+            }
+            $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
+            $version = Version::VERSION;
+            $dsn = $settings->browserDSN->getValue();
+            $hostname = $this->hostname;
+            $out .= "piwik.sentryDSN = '$dsn';\n";
+            $out .= "piwik.matomoRelease = '$version';\n";
+            $out .= "piwik.sentryEnv = '$dsnEnvironment';\n";
+            $out .= "piwik.autoSessionTracking = '$autoSessionTracking';\n";
+            $out .= "piwik.hostname = '$hostname';\n";
+    }
     }
 }
