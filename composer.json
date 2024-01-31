@@ -1,6 +1,21 @@
 {
     "require": {
-        "sentry/sdk": "^2.0",
-        "guzzlehttp/guzzle": "=6.3.3"
+        "sentry/sentry": "~4.5.0",
+        "symfony/http-client": "^6.4",
+        "http-interop/http-factory-guzzle": "^1.2"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10",
+        "phpstan/phpstan-deprecation-rules": "^1.1",
+        "phpunit/phpunit": "^10.4",
+        "squizlabs/php_codesniffer": "^3.7",
+        "pheromone/phpcs-security-audit": "^2.0",
+        "slevomat/coding-standard": "^8.14"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }

@@ -1,0 +1,7 @@
+includes:
+  - /var/www/html/plugins/Sentry/vendor/phpstan/phpstan-deprecation-rules/rules.neon
+parameters:
+  excludePaths:
+    - /var/www/html/plugins/Sentry/vendor
+  bootstrapFiles:
+    - /var/www/html/plugins/Sentry/tests/ci/phpstan.php

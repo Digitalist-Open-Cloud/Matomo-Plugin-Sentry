@@ -1,29 +1,27 @@
 {
-  "name": "SentryLogger",
-  "description": "Log all Matomo errors to a Sentry server",
-  "version": "0.3.1",
-  "theme": false,
-  "require": {
-    "piwik": ">=3.6.0,<4.0.0-b1",
-    "php": ">=7.1.0"
-  },
-  "authors": [
-    {
-      "name": "Lukas Winkler",
-      "email": "lukas@matomo.org",
-      "homepage": "https://lw1.at"
-    }
-  ],
-  "support": {
-    "email": "lukas@matomo.org",
-    "issues": "https://github.com/Findus23/plugin-SentryLogger/issues",
-    "forum": "https://forum.matomo.org",
-    "source": "https://github.com/Findus23/plugin-SentryLogger"
-  },
-  "homepage": "https://lw1.at",
-  "license": "GPL v3+",
-  "keywords": [
-    "sentry",
-    "error"
-  ]
+    "name": "Sentry",
+    "description": "Log Matomo errors to Sentry",
+    "version": "5.0.2",
+    "theme": false,
+    "require": {
+        "matomo": ">=5.0.1-stable,<6.0.0-b1",
+        "php": ">=7.4.0"
+    },
+    "authors": [
+        {
+          "name": "Lukas Winkler",
+          "email": "lukas@matomo.org",
+          "homepage": "https://lw1.at"
+        },
+        {
+            "name": "Mikke Schirén",
+            "email": "mikke.schiren@digitalist.com",
+            "homepage": "https://www.digitalist.se/"
+        }
+      ],
+    "license": "GPL v3+",
+    "keywords": [
+        "sentry",
+        "error"
+    ]
 }
