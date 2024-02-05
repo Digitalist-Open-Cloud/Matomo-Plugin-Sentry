@@ -11,7 +11,7 @@
             environment: piwik.sentryEnv,
             autoSessionTracking: piwik.autoSessionTracking,
             integrations: [new Sentry.BrowserTracing()],
-            tracesSampleRate: 1.0
+            tracesSampleRate: piwik.tracesSampleRate
         });
     }
 })(jQuery, require);

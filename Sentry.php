@@ -39,6 +39,7 @@ class Sentry extends \Piwik\Plugin
 
         $dsn = $settings->DSN->getValue();
         $dsnSamplerate = $settings->DSNSampleRateSetting->getValue();
+        $tracesSamplerate = $settings->tracesSampleRateSetting->getValue();
         $dsnEnvironment = $settings->DSNEnvironment->getValue();
         if ($dsn) {
             require_once PIWIK_INCLUDE_PATH . '/plugins/Sentry/vendor/autoload.php';
@@ -47,6 +48,7 @@ class Sentry extends \Piwik\Plugin
                 'release' => Version::VERSION,
                 'sample_rate' => floatval($dsnSamplerate),
                 'environment' => $dsnEnvironment,
+                'traces_sample_rate' => $tracesSamplerate,
             ]);
             $user = Piwik::getCurrentUserLogin();
 
@@ -85,24 +87,21 @@ class Sentry extends \Piwik\Plugin
      */
     public function getJSFiles(&$file)
     {
-        if (Piwik::isUserHasSomeViewAccess()) {
             $file[] = 'plugins/Sentry/libs/bundle.min.js';
             $file[] = 'plugins/Sentry/javascripts/init.js';
-        }
-
     }
 
     public function addJsVariables(&$out)
     {
-        if (Piwik::isUserHasSomeViewAccess()) {
             $settings = new SystemSettings();
             $dsnEnvironment = $settings->DSNEnvironment->getValue();
+            $tracesSampleRate = $settings->tracesSampleRateSetting->getValue();
             $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
-            if ($autoSessionTracking == 1) {
-                $autoSessionTracking = true;
-            } else {
-                $autoSessionTracking = false;
-            }
+        if ($autoSessionTracking == 1) {
+            $autoSessionTracking = true;
+        } else {
+            $autoSessionTracking = false;
+        }
             $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
             $version = Version::VERSION;
             $dsn = $settings->browserDSN->getValue();
@@ -112,6 +111,6 @@ class Sentry extends \Piwik\Plugin
             $out .= "piwik.sentryEnv = '$dsnEnvironment';\n";
             $out .= "piwik.autoSessionTracking = '$autoSessionTracking';\n";
             $out .= "piwik.hostname = '$hostname';\n";
-    }
+            $out .= "piwik.tracesSampleRate = '$tracesSampleRate';\n";
     }
 }

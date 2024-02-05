@@ -4,7 +4,6 @@ namespace Piwik\Plugins\Sentry;
 
 use Piwik\Settings\Setting;
 use Piwik\Settings\FieldConfig;
-use Piwik\Validators\NotEmpty;
 
 /**
  * Defines Settings for Sentry.
@@ -21,6 +20,9 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     /** @var Setting */
     public $DSNSampleRateSetting;
+
+    /** @var Setting */
+    public $tracesSampleRateSetting;
 
     /** @var Setting */
     public $browserDSN;
@@ -41,6 +43,7 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
     {
         $this->DSN = $this->createDSNSetting();
         $this->DSNSampleRateSetting = $this->createDSNSampleRateSetting();
+        $this->tracesSampleRateSetting = $this->createTracesSampleRateSetting();
         $this->browserDSN = $this->createBrowserDSNSetting();
         $this->DSNEnvironment = $this->createEnvironment();
         $this->createDSNDomain = $this->createDSNDomain();
@@ -65,10 +68,28 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
     private function createDSNSampleRateSetting()
     {
         return $this->makeSetting('DSNSampleRate', "1.0", FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
-            $field->title = 'Sample rate (float)';
+            $field->title = 'Error tracking sample rate (float value)';
             $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
             $field->description =
               'Add sample rate, 0.0 for no error tracking, 1.0 for 100% and 0.25 for 25% as an example.';
+            $field->validate = function ($value) {
+                if (empty($value)) {
+                    throw new \Exception('Value is required');
+                }
+            };
+        });
+    }
+
+    /**
+     * @return Setting
+     */
+    private function createTracesSampleRateSetting()
+    {
+        return $this->makeSetting('TracesSampleRate', "0.0", FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
+            $field->title = 'Tracing sample rate (float value)';
+            $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
+            $field->description =
+              'Default 0.0 (off). 1.0 for 100% and 0.25 for 25% etc.';
             $field->validate = function ($value) {
                 if (empty($value)) {
                     throw new \Exception('Value is required');
