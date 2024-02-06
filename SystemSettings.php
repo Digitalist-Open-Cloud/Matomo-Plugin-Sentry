@@ -67,11 +67,11 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
      */
     private function createDSNSampleRateSetting()
     {
-        return $this->makeSetting('DSNSampleRate', "1.0", FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
+        return $this->makeSetting('DSNSampleRate', 1.0, FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
             $field->title = 'Error tracking sample rate (float value)';
             $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
             $field->description =
-              'Add sample rate, 0.0 for no error tracking, 1.0 for 100% and 0.25 for 25% as an example.';
+              'Add sample rate, 0 for no error tracking, 1.0 for 100% and 0.25 for 25% as an example.';
             $field->validate = function ($value) {
                 if (empty($value)) {
                     throw new \Exception('Value is required');
@@ -85,11 +85,11 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
      */
     private function createTracesSampleRateSetting()
     {
-        return $this->makeSetting('TracesSampleRate', "0.0", FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
+        return $this->makeSetting('TracesSampleRate', 0.0, FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
             $field->title = 'Tracing sample rate (float value)';
             $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
             $field->description =
-              'Default 0.0 (off). 1.0 for 100% and 0.25 for 25% etc.';
+              'Default 0 (off). 1.0 for 100% and 0.25 for 25% etc.';
             $field->validate = function ($value) {
                 if (empty($value)) {
                     throw new \Exception('Value is required');
