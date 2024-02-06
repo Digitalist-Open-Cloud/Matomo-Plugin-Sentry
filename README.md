@@ -2,7 +2,7 @@
 
 ## Description
 
-Log errors from Matomo to a [Sentry](https://sentry.io/) instance, or Sentry compatible setup like [GlitchTip](https://glitchtip.com/). [Here is a guide](https://guides.lw1.at/how-to-install-glitchtip-without-docker/) by [@Findus23](https://github.com/Findus23) how to setup GlitchTip if you are not using Docker.
+Log errors from Matomo to a [Sentry](https://sentry.io/) instance, or Sentry compatible setup like [GlitchTip](https://glitchtip.com/). [Here is a guide](https://guides.lw1.at/how-to-install-glitchtip-without-docker/) by [@Findus23](https://github.com/Findus23) on how to setup GlitchTip if you are not using Docker.
 
 ## Installation
 
