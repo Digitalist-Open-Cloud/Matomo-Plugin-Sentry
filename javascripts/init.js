@@ -5,13 +5,17 @@
           });
         Sentry.setTag("hostname", piwik.hostname);
         Sentry.init({
-            Vue: Vue,
             dsn: piwik.sentryDSN,
             release: piwik.matomoRelease,
             environment: piwik.sentryEnv,
             autoSessionTracking: piwik.autoSessionTracking,
-            integrations: [new Sentry.BrowserTracing()],
-            tracesSampleRate: piwik.tracesSampleRate
+            enableTracing: true,
+            integrations: [
+                Sentry.browserTracingIntegration()
+            ],
+            tracesSampleRate: 1.0,
+
+            //tracesSampleRate: piwik.tracesSampleRate
         });
     }
 })(jQuery, require);
