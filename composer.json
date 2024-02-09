@@ -1,8 +1,9 @@
 {
     "require": {
-        "sentry/sentry": "~4.5.0",
+        "sentry/sentry": "^4.5",
         "symfony/http-client": "^6.4",
-        "http-interop/http-factory-guzzle": "^1.2"
+        "http-interop/http-factory-guzzle": "^1.2",
+        "monolog/monolog": "~1.11"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.10",

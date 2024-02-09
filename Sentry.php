@@ -109,8 +109,8 @@ class Sentry extends \Piwik\Plugin
             $out .= "piwik.sentryDSN = '$dsn';\n";
             $out .= "piwik.matomoRelease = '$version';\n";
             $out .= "piwik.sentryEnv = '$dsnEnvironment';\n";
-            $out .= "piwik.autoSessionTracking = '$autoSessionTracking';\n";
+            $out .= "piwik.autoSessionTracking = $autoSessionTracking;\n";
             $out .= "piwik.hostname = '$hostname';\n";
-            $out .= "piwik.tracesSampleRate = '$tracesSampleRate';\n";
+            $out .= "piwik.tracesSampleRate = $tracesSampleRate;\n";
     }
 }

@@ -8,13 +8,13 @@ Go to Sentry plugin dir:
 composer install
 ```
 
-Go to Matomo root (/var/www/html usually) run:
+Go to Matomo root (/var/www/html usually) and run:
 
 ```bash
 /var/www/html/plugins/Sentry/vendor/bin/phpstan analyze -c /var/www/html/plugins/Sentry/tests/phpstan.neon --level=5 /var/www/html/plugins/Sentry
 ```
 
-## PHPCS
+## PHP CodeSniffer
 
 Go to Sentry plugin dir:
 
@@ -22,7 +22,7 @@ Go to Sentry plugin dir:
 composer install
 ```
 
-Run PHP Codesniffer
+Run PHP CodeSniffer
 
 ```bash
 vendor/bin/phpcs --ignore=*/vendor/*,*/node_modules/*,*.js  --standard=PSR2 .
