@@ -1,7 +1,7 @@
 {
   "name": "Sentry",
   "description": "Log Matomo errors to Sentry",
-  "version": "5.0.9",
+  "version": "5.0.10",
   "theme": false,
   "require": {
     "matomo": ">=5.0.0-stable,<6.0.0-b1",
