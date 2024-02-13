@@ -1,4 +1,8 @@
-# Changelog
+# Change log
+
+## 5.0.9
+
+- Fix bug in 5.0.8 that broke Matomo.
 
 ## 5.0.1
 
