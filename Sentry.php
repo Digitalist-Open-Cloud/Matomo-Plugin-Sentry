@@ -98,11 +98,11 @@ class Sentry extends \Piwik\Plugin
             $tracesSampleRate = $settings->tracesSampleRateSetting->getValue();
             $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
             $browserTracing = boolval($settings->browserTracing->getValue());
-            if ($browserTracing == 1) {
-                $browserTracing = true;
-            } else {
-                $browserTracing = false;
-            }
+        if ($browserTracing == 1) {
+            $browserTracing = true;
+        } else {
+            $browserTracing = false;
+        }
             $browserTracingRate = $settings->browserTracingRate->getValue();
             $autoSessionTracking = $settings->autoSessionTracking->getValue();
             $version = Version::VERSION;
