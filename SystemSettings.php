@@ -36,6 +36,13 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
     /** @var Setting */
     public $createDSNDomain;
 
+    /** @var Setting */
+    public $browserTracing;
+
+    /** @var Setting */
+    public $browserTracingRate;
+
+
     /**
      * @return void
      */
@@ -48,6 +55,8 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
         $this->DSNEnvironment = $this->createEnvironment();
         $this->createDSNDomain = $this->createDSNDomain();
         $this->autoSessionTracking = $this->createBrowserAutoSessionTracking();
+        $this->browserTracing = $this->createBrowserTracing();
+        $this->browserTracingRate = $this->createBrowserTracingRate();
     }
 
     /**
@@ -101,18 +110,6 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
     /**
      * @return Setting
      */
-    private function createDSNDomain()
-    {
-        return $this->makeSetting('DSNDomain', "", FieldConfig::TYPE_STRING, function (FieldConfig $field) {
-            $field->title = 'Domain';
-            $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
-            $field->description = 'Domain for your Sentry instance, needed for CSP';
-        });
-    }
-
-    /**
-     * @return Setting
-     */
     private function createBrowserDSNSetting()
     {
         return $this->makeSetting('BrowserDSN', "", FieldConfig::TYPE_STRING, function (FieldConfig $field) {
@@ -137,6 +134,53 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                 $field->description = 'If enabled, auto session tracking will be active';
             }
         );
+    }
+
+    /**
+     * @return Setting
+     */
+    private function createBrowserTracing()
+    {
+        return $this->makeSetting(
+            'BrowserTracing',
+            $default = false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = 'Enable Browser tracing';
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->description = 'If enabled, browser tracing will be active';
+            }
+        );
+    }
+
+        /**
+     * @return Setting
+     */
+    private function createBrowserTracingRate()
+    {
+        return $this->makeSetting('BrowserTracingRate', 0.0, FieldConfig::TYPE_FLOAT, function (FieldConfig $field) {
+            $field->title = 'Browser tracing rate (float value)';
+            $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
+            $field->description =
+              'Default 0 (off). 1.0 for 100% and 0.25 for 25% etc.';
+            $field->validate = function ($value) {
+                if (empty($value)) {
+                    throw new \Exception('Value is required');
+                }
+            };
+        });
+    }
+
+    /**
+     * @return Setting
+     */
+    private function createDSNDomain()
+    {
+        return $this->makeSetting('DSNDomain', "", FieldConfig::TYPE_STRING, function (FieldConfig $field) {
+            $field->title = 'Domain';
+            $field->uiControl = FieldConfig::UI_CONTROL_TEXT;
+            $field->description = 'Domain for your Sentry instance, needed for CSP';
+        });
     }
 
     /**

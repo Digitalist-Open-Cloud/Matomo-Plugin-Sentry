@@ -97,20 +97,24 @@ class Sentry extends \Piwik\Plugin
             $dsnEnvironment = $settings->DSNEnvironment->getValue();
             $tracesSampleRate = $settings->tracesSampleRateSetting->getValue();
             $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
-        if ($autoSessionTracking == 1) {
-            $autoSessionTracking = true;
+            $browserTracing = boolval($settings->browserTracing->getValue());
+        if ($browserTracing == 1) {
+            $browserTracing = true;
         } else {
-            $autoSessionTracking = false;
+            $browserTracing = false;
         }
-            $autoSessionTracking = boolval($settings->autoSessionTracking->getValue());
+            $browserTracingRate = $settings->browserTracingRate->getValue();
+            $autoSessionTracking = $settings->autoSessionTracking->getValue();
             $version = Version::VERSION;
             $dsn = $settings->browserDSN->getValue();
             $hostname = $this->hostname;
             $out .= "piwik.sentryDSN = '$dsn';\n";
             $out .= "piwik.matomoRelease = '$version';\n";
             $out .= "piwik.sentryEnv = '$dsnEnvironment';\n";
-            $out .= "piwik.autoSessionTracking = $autoSessionTracking;\n";
+            $out .= 'piwik.autoSessionTracking = ' . boolval($autoSessionTracking) . ";\n";
             $out .= "piwik.hostname = '$hostname';\n";
-            $out .= "piwik.tracesSampleRate = $tracesSampleRate;\n";
+            $out .= 'piwik.tracesSampleRate = ' . floatval($tracesSampleRate) . ";\n";
+            $out .= 'piwik.browserTracing = ' . boolval($browserTracing) . ";\n";
+            $out .= 'piwik.browserTracingRate = ' . floatval($browserTracingRate) . ";\n";
     }
 }

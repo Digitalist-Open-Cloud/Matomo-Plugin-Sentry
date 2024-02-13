@@ -9,13 +9,9 @@
             release: piwik.matomoRelease,
             environment: piwik.sentryEnv,
             autoSessionTracking: piwik.autoSessionTracking,
-            enableTracing: true,
-            integrations: [
-                Sentry.browserTracingIntegration()
-            ],
-            tracesSampleRate: 1.0,
-
-            //tracesSampleRate: piwik.tracesSampleRate
+            integrations: [new Sentry.BrowserTracing()],
+            tracesSampleRate: piwik.tracesSampleRate,
+            browserTracing: piwik.browserTracing,
         });
     }
 })(jQuery, require);
