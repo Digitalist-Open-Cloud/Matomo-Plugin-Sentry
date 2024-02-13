@@ -2,15 +2,19 @@
 
 ## Description
 
-Log errors from Matomo to a [Sentry](https://sentry.io/) instance, or Sentry compatible setup like [GlitchTip](https://glitchtip.com/).
+Log errors from Matomo to a [Sentry](https://sentry.io/) instance, or Sentry compatible setup like [GlitchTip](https://glitchtip.com/). [Here is a guide](https://guides.lw1.at/how-to-install-glitchtip-without-docker/) by [@Findus23](https://github.com/Findus23) on how to setup GlitchTip if you are not using Docker.
+
+> [!WARNING]
+> With this plugin activated, the data of the logged in user could be logged in Sentry, handle all user data with care, and make sure you are using settings that anonymize the data.
 
 ## Installation
 
-* Clone github repo into plugins/Sentry.
-* Go into plugins/Sentry.
+* Clone GitHub repo into plugins/Sentry.
+* Go into root for your Matomo project (/var/www/html).
 * Run composer install --no-dev for productions use.
 * Install Sentry plugin in Matomo.
 * Go to settings page for adding the adding the Sentry Data Source Name (DSN).
+* Adjust Error tracking sample rate and Tracing sample rate to you preferred values.
 * Save settings.
 
 ## Settings
