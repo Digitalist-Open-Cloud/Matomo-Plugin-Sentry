@@ -8,10 +8,10 @@
             dsn: piwik.sentryDSN,
             release: piwik.matomoRelease,
             environment: piwik.sentryEnv,
-            autoSessionTracking: piwik.autoSessionTracking,
+            autoSessionTracking: Boolean(piwik.autoSessionTracking),
             integrations: [new Sentry.BrowserTracing()],
-            tracesSampleRate: piwik.tracesSampleRate,
-            browserTracing: piwik.browserTracing,
+            tracesSampleRate: parseFloat(piwik.tracesSampleRate),
+            browserTracing: Boolean(piwik.browserTracing),
         });
     }
 })(jQuery, require);
