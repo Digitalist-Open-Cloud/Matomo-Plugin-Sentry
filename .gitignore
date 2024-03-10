@@ -2,3 +2,4 @@ tmp/
 vendor/
 node_modules/
 .vscode
+tests/.phpunit.result.cache
