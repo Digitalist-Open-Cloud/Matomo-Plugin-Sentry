@@ -16,9 +16,16 @@ use Piwik\Version;
 use Sentry\Severity;
 use Piwik\Url;
 use Piwik\Common;
+use Piwik\Container\StaticContainer;
+use Piwik\Log\LoggerInterface;
 
 class Sentry extends \Piwik\Plugin
 {
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
     /**
      * @var string Config
      */
@@ -27,8 +34,9 @@ class Sentry extends \Piwik\Plugin
     /**
      * @param bool|string $pluginName
      */
-    public function __construct($pluginName = false)
+    public function __construct($pluginName = false, LoggerInterface $logger = null)
     {
+        $this->logger = $logger ?: StaticContainer::get(LoggerInterface::class);
         $matomoHost = Config::getHostname();
         if (strlen($matomoHost) == 0) {
             $host = Url::getHost($checkIfTrusted = false);

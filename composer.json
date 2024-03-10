@@ -2,8 +2,7 @@
     "require": {
         "sentry/sentry": "^4.5",
         "symfony/http-client": "^6.4",
-        "http-interop/http-factory-guzzle": "^1.2",
-        "monolog/monolog": "~1.11"
+        "http-interop/http-factory-guzzle": "^1.2"
     },
     "require-dev": {
         "phpunit/phpunit": "9.6.4",
