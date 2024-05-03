@@ -10,7 +10,7 @@ Log errors from Matomo to a [Sentry](https://sentry.io/) instance, or Sentry com
 ## Installation
 
 * Clone GitHub repo into plugins/Sentry.
-* Go into root for your Matomo project (/var/www/html).
+* Go into plugins/Sentry.
 * Run composer install --no-dev for productions use.
 * Install Sentry plugin in Matomo.
 * Go to settings page for adding the adding the Sentry Data Source Name (DSN).
