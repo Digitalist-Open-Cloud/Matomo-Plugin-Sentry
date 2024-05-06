@@ -1,5 +1,11 @@
 # Change log
 
+## [5.0.14] - 2024-05-06
+
+### Changed
+
+- Install instructions in `README.md` - mirrored in `docs/index.md`
+
 ## 5.0.9
 
 - Fix bug in 5.0.8 that broke Matomo.
