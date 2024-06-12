@@ -1,5 +1,11 @@
 # Change log
 
+## [5.0.15] - 2024-05-06
+
+### Changed
+
+- Sentry Javascript library updated to version 8.9.2
+
 ## [5.0.14] - 2024-05-06
 
 ### Changed
