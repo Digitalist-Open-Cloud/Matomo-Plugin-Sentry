@@ -1,5 +1,11 @@
 # Change log
 
+## [5.0.16] - 2024-08-30
+
+### Added
+
+- Cover image for Marketplace
+
 ## [5.0.15] - 2024-05-06
 
 ### Changed
